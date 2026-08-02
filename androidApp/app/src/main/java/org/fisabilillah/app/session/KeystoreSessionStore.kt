@@ -92,32 +92,38 @@ internal class KeystoreSessionStore(context: Context) : SessionStore {
         null
     }
 
-    private fun encrypt(plain: String): String? = try {
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey() ?: return null)
-        val body = cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
-        // GCM needs its nonce back to decrypt, and the nonce is not secret. Length-prefixed
-        // so the format survives a future change of IV size.
-        val iv = cipher.iv
-        val packed = ByteArray(1 + iv.size + body.size)
-        packed[0] = iv.size.toByte()
-        iv.copyInto(packed, 1)
-        body.copyInto(packed, 1 + iv.size)
-        Base64.encodeToString(packed, Base64.NO_WRAP)
-    } catch (e: Exception) {
-        null
+    private fun encrypt(plain: String): String? {
+        val key = secretKey() ?: return null
+        return try {
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.ENCRYPT_MODE, key)
+            val body = cipher.doFinal(plain.toByteArray(Charsets.UTF_8))
+            // GCM needs its nonce back to decrypt, and the nonce is not secret.
+            // Length-prefixed so the format survives a future change of IV size.
+            val iv = cipher.iv
+            val packed = ByteArray(1 + iv.size + body.size)
+            packed[0] = iv.size.toByte()
+            iv.copyInto(packed, 1)
+            body.copyInto(packed, 1 + iv.size)
+            Base64.encodeToString(packed, Base64.NO_WRAP)
+        } catch (e: Exception) {
+            null
+        }
     }
 
-    private fun decrypt(encoded: String): String? = try {
-        val packed = Base64.decode(encoded, Base64.NO_WRAP)
-        val ivSize = packed[0].toInt()
-        val iv = packed.copyOfRange(1, 1 + ivSize)
-        val body = packed.copyOfRange(1 + ivSize, packed.size)
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.DECRYPT_MODE, secretKey() ?: return null, GCMParameterSpec(TAG_BITS, iv))
-        String(cipher.doFinal(body), Charsets.UTF_8)
-    } catch (e: Exception) {
-        null
+    private fun decrypt(encoded: String): String? {
+        val key = secretKey() ?: return null
+        return try {
+            val packed = Base64.decode(encoded, Base64.NO_WRAP)
+            val ivSize = packed[0].toInt()
+            val iv = packed.copyOfRange(1, 1 + ivSize)
+            val body = packed.copyOfRange(1 + ivSize, packed.size)
+            val cipher = Cipher.getInstance(TRANSFORMATION)
+            cipher.init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(TAG_BITS, iv))
+            String(cipher.doFinal(body), Charsets.UTF_8)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private companion object {
