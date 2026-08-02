@@ -1,42 +1,118 @@
-# Gradle
+# ── Gradle ───────────────────────────────────────────────────────────────────
 .gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
+!androidApp/gradle/wrapper/gradle-wrapper.jar
 !src/**/build/
+!**/src/**/build/
+out/
+.gradletasknamecache
 
-# Android
+# ── Kotlin ───────────────────────────────────────────────────────────────────
+.kotlin/
+*.kotlin_module
+
+# ── Java / JVM ───────────────────────────────────────────────────────────────
+*.class
+hs_err_pid*
+replay_pid*
+
+# ── Android ──────────────────────────────────────────────────────────────────
 local.properties
 *.apk
 *.aab
 *.aar
 *.ap_
 *.dex
+release/
 captures/
-.cxx/
 output.json
+.externalNativeBuild/
+.cxx/
+lint/intermediates/
+lint/generated/
+lint/outputs/
+lint/tmp/
+lint/reports/
 
-# IDE
+# Signing material must never be committed. The shared debug keystore is the
+# only exception, and only if one is ever added deliberately.
+*.jks
+*.keystore
+!debug.keystore
+keystore.properties
+signing.properties
+
+# Google services configuration, if one is ever added.
+google-services.json
+
+# ── IDEs ─────────────────────────────────────────────────────────────────────
+# Ignore .idea wholesale, then re-admit the files a team genuinely shares.
 .idea/*
 !.idea/codeStyles/
 !.idea/inspectionProfiles/
+!.idea/copyright/
+!.idea/dictionaries/
+!.idea/runConfigurations/
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/shelf/
 *.iml
 *.ipr
 *.iws
+
 .vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
 
-# Environment and secrets — never commit a real one of these
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# ── Secrets and environment ──────────────────────────────────────────────────
+# .env.example is committed and documents the variable names. Nothing else is.
+# SUPABASE_SERVICE_ROLE_KEY bypasses row-level security entirely; see
+# docs/deployment.md.
 .env
-.env.local
-.env.*.local
-*.keystore
-*.jks
-!debug.keystore
+.env.*
+!.env.example
+secrets.properties
+*.pem
+*.p12
+*.key
 
-# OS
+# ── Operating system ─────────────────────────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+.directory
+*~
 
-# Logs and scratch
+# ── Test and build output ────────────────────────────────────────────────────
+**/build/reports/
+**/build/test-results/
 *.log
 *.hprof
+.attach_pid*
+
+# ── Backend ──────────────────────────────────────────────────────────────────
+# Migrations, seed and tests are all committed. Only local CLI state is not.
+backend/supabase/.temp/
+backend/supabase/.branches/
+supabase/.temp/
+
+# ── Miscellaneous ────────────────────────────────────────────────────────────
+node_modules/
 /tmp/
+*.tmp
+*.bak
+*.orig
+*.rej

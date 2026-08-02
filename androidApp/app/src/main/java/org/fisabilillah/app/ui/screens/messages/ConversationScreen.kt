@@ -127,7 +127,7 @@ internal fun ConversationScreen(
             Composer(
                 draft = draft,
                 onDraftChange = { if (it.length <= Message.MAX_LENGTH) draft = it },
-                canSend = state.canSend,
+                canSend = conversation != null && state.canSend,
                 disabledReason = disabledReason(conversation),
                 onSend = {
                     val body = draft.trim()
@@ -182,8 +182,9 @@ internal fun ConversationScreen(
             if (transientError != null) {
                 RefusalNotice(message = transientError)
             }
-            if (state.refusal != null) {
-                RefusalNotice(message = state.refusal)
+            val refusal = state.refusal
+            if (refusal != null) {
+                RefusalNotice(message = refusal)
             }
 
             LazyColumn(

@@ -44,7 +44,8 @@ internal fun RequestsScreen(
     onCreate: () -> Unit,
 ) {
     val spacing = FiSabilillahTheme.spacing
-    val requests = state.data
+    val requests: List<VisibleServiceRequest> = state.data ?: emptyList()
+    val refusal: String? = state.refusal
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Requests") }) },
@@ -81,13 +82,12 @@ internal fun RequestsScreen(
                 )
             }
 
-            val refusal = state.refusal
             when {
                 state.loading -> item { LoadingState(label = "Loading requests") }
 
                 refusal != null -> item { RefusalNotice(message = refusal) }
 
-                requests == null || requests.isEmpty() -> item {
+                requests.isEmpty() -> item {
                     EmptyState(
                         title = "No open requests",
                         body = "Nothing is outstanding in the areas you can see. If you need " +

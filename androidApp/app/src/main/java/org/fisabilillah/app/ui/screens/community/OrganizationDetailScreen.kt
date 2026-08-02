@@ -205,8 +205,8 @@ private fun organisationFloorLines(organisation: Organization): List<String> {
         if (floor.forbidFormalIntroductions) {
             add("Formal introductions cannot be started in its spaces")
         }
-        if (floor.requireBackgroundCheckForMinorContact) {
-            add("A background check is required for any contact with someone under eighteen")
+        if (floor.meetingsRequireThirdParty) {
+            add("Meetings arranged here should have a third person present")
         }
     }
 }

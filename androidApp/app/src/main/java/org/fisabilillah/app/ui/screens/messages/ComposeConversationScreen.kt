@@ -102,8 +102,9 @@ internal fun ComposeConversationScreen(
                 )
             }
 
-            if (state.refusal != null) {
-                RefusalNotice(message = state.refusal)
+            val refusal = state.refusal
+            if (refusal != null) {
+                RefusalNotice(message = refusal)
             }
 
             // ── Purpose ──────────────────────────────────────────────────────

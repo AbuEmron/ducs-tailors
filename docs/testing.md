@@ -6,7 +6,7 @@ Two suites exist and both pass.
 
 | Suite | How to run it | Result |
 | --- | --- | --- |
-| Shared core, JVM | `./gradlew test` from the repository root | **158 tests, all passing** |
+| Shared core, JVM | `./gradlew test` from the repository root | **162 tests, all passing** |
 | Database, row-level security | `backend/supabase/run_local_tests.sh` | **100 assertions, all passing** |
 
 There is a third thing that does not exist yet: the Android module has no passing test run,
@@ -43,11 +43,15 @@ Kotlin JVM plugin.
 | | `SeedDataTest` | 8 |
 | | `MessagingBehaviourTest` | 5 |
 | | `SafeguardFloorScopeTest` | 3 |
-| | **subtotal** | **49** |
-| | **total** | **158** |
+| | `SafeguardsAreEnforcedTest` | 4 |
+| | **subtotal** | **53** |
+| | **total** | **162** |
 
-Before `ProductPrincipleTest` was added the figure was 148. Those ten tests assert on the
-shape of the domain rather than on behaviour, and are described below.
+`ProductPrincipleTest` and `SafeguardsAreEnforcedTest` are unusual: they assert on the
+*shape* of the domain rather than on behaviour. The first guards the product principles —
+adding a follower count means deleting a test that explains why it should not exist. The
+second walks `SafeguardFloor` reflectively and fails if a field is added without being wired
+into the resolver, because a safeguard switch that changes nothing is worse than no switch.
 
 ### `:core:policy` — the decision layer
 

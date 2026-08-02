@@ -32,6 +32,7 @@ import org.fisabilillah.core.policy.OversightRequirement
 import org.fisabilillah.core.policy.PurposeValidator
 import org.fisabilillah.core.policy.UnsendDecision
 import org.fisabilillah.core.policy.ValidationResult
+import kotlin.time.Duration.Companion.days
 
 /** What the caller supplies to open a conversation. */
 public data class StartConversationCommand(
@@ -108,6 +109,7 @@ public class StartConversationUseCase(
         }
 
         val allowed = decision as ContactDecision.Allowed
+        val recipientSafeguards = context.recipientEffectiveSafeguards
         val now = clock.now()
 
         val members = mutableListOf(
@@ -133,6 +135,12 @@ public class StartConversationUseCase(
             subjectTitle = subjects.titleFor(command.purpose),
             appliedRequirements = allowed.requirements,
             lastMessageAt = now,
+            // The recipient's own schedule for closing a thread once the work is done.
+            archiveAfter = if (recipientSafeguards.autoArchiveAfterCompletion) {
+                now + recipientSafeguards.autoArchiveAfterDays.days
+            } else {
+                null
+            },
             createdAt = now,
             updatedAt = now,
         )

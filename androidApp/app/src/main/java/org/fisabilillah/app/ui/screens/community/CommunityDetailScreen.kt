@@ -222,7 +222,7 @@ private fun safeguardFloorLines(floor: SafeguardFloor): List<String> = buildList
     if (floor.forbidFormalIntroductions) {
         add("Formal introductions cannot be started from this community")
     }
-    if (floor.requireBackgroundCheckForMinorContact) {
-        add("A background check is required for any contact with someone under eighteen")
+    if (floor.meetingsRequireThirdParty) {
+        add("Meetings arranged here should have a third person present")
     }
 }

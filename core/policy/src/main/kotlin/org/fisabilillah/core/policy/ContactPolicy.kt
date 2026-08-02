@@ -426,6 +426,9 @@ public object ContactPolicy {
         if (safeguards.meetingsMustBeInPublicPlaces) {
             requirements += ContactRequirement.PUBLIC_MEETINGS_ONLY
         }
+        if (safeguards.meetingsRequireThirdParty) {
+            requirements += ContactRequirement.THIRD_PARTY_AT_MEETINGS
+        }
         if (safeguards.autoArchiveAfterCompletion) {
             requirements += ContactRequirement.ARCHIVES_ON_COMPLETION
         }

@@ -309,8 +309,8 @@ public data class SafeguardFloor(
     val videoCallsAllowedFrom: AudienceScope? = null,
     val oneToOneMeetingsAllowedFrom: AudienceScope? = null,
     val meetingsMustBeInPublicPlaces: Boolean = false,
+    val meetingsRequireThirdParty: Boolean = false,
     val forbidFormalIntroductions: Boolean = false,
-    val requireBackgroundCheckForMinorContact: Boolean = true,
 ) {
     public companion object {
         public val NONE: SafeguardFloor = SafeguardFloor()

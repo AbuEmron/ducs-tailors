@@ -267,6 +267,10 @@ public enum class ContactRequirement(
         "Public meetings only",
         "Any meeting arranged here should be in a public place.",
     ),
+    THIRD_PARTY_AT_MEETINGS(
+        "Third party at meetings",
+        "Any meeting arranged here should have a third person present.",
+    ),
     ARCHIVES_ON_COMPLETION(
         "Archives when finished",
         "This conversation closes itself once the work is complete.",

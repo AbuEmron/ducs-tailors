@@ -62,6 +62,8 @@ public object SafeguardResolver {
         ),
         meetingsMustBeInPublicPlaces =
             user.meetingsMustBeInPublicPlaces || floor.meetingsMustBeInPublicPlaces,
+        meetingsRequireThirdParty =
+            user.meetingsRequireThirdParty || floor.meetingsRequireThirdParty,
         acceptFormalIntroductions =
             user.acceptFormalIntroductions && !floor.forbidFormalIntroductions,
     )
@@ -95,6 +97,7 @@ public object SafeguardResolver {
         if (current.requireGroupContext && !candidate.requireGroupContext) return false
         if (current.requireThirdParty && !candidate.requireThirdParty) return false
         if (current.meetingsMustBeInPublicPlaces && !candidate.meetingsMustBeInPublicPlaces) return false
+        if (current.meetingsRequireThirdParty && !candidate.meetingsRequireThirdParty) return false
         if (!current.declinedPurposes.all { it in candidate.declinedPurposes }) return false
         return true
     }
@@ -143,6 +146,9 @@ public object SafeguardResolver {
         }
         if (current.requireThirdParty && !candidate.requireThirdParty) {
             loosened += "A third party will no longer be required in your conversations"
+        }
+        if (current.meetingsRequireThirdParty && !candidate.meetingsRequireThirdParty) {
+            loosened += "Meetings will no longer be expected to have a third person present"
         }
         if (!current.acceptFormalIntroductions && candidate.acceptFormalIntroductions) {
             loosened += "You will start receiving formal family introductions"

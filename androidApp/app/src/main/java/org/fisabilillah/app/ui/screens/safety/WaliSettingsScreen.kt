@@ -119,8 +119,9 @@ internal fun WaliSettingsScreen(
                 text = IntroductionPolicy.RELIGIOUS_GUIDANCE_NOTICE,
             )
 
-            if (state.refusal != null) {
-                RefusalNotice(message = state.refusal)
+            val refusal = state.refusal
+            if (refusal != null) {
+                RefusalNotice(message = refusal)
             }
 
             SectionDivider()

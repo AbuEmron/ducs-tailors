@@ -124,8 +124,8 @@ Verified by running `./gradlew test` from the repository root:
 | Module | Tests | What it covers |
 | --- | --- | --- |
 | `:core:policy` | 109 | The contact gate, safeguard resolution, visibility, the introduction state machine, moderation authority, content signals, verification, and the product-principle guards |
-| `:core:data` | 49 | The same rules exercised end to end through the real use cases against seeded data |
-| **Total** | **158** | all passing |
+| `:core:data` | 53 | The same rules exercised end to end through the real use cases against seeded data |
+| **Total** | **162** | all passing |
 
 Before the product-principle suite was added the figure was 148; the ten additional tests
 assert on the shape of the domain rather than on behaviour.
