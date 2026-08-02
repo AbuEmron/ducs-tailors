@@ -951,4 +951,26 @@ $$;
 rollback;
 
 \echo ''
+\echo '### 19. The audit log cannot be written to from a client session'
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = 'cccccccc-0000-4000-8000-000000000004';   -- ibrahim
+do $$
+begin
+  perform test.denied($q$
+    insert into public.audit_logs (actor_id, subject_id, action, entity_type)
+    values ('aaaaaaaa-0000-4000-8000-000000000002',
+            'cccccccc-0000-4000-8000-000000000004',
+            'moderation.cleared', 'profiles')
+  $q$, 'a member cannot forge an audit row naming a moderator as the actor');
+
+  perform test.denied($q$
+    insert into public.audit_logs (actor_id, action, entity_type)
+    values ('cccccccc-0000-4000-8000-000000000004', 'account.registered', 'profiles')
+  $q$, 'nor an honest-looking one naming themselves');
+end;
+$$;
+rollback;
+
+\echo ''
 \echo '### all assertions completed'
