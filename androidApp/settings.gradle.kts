@@ -45,6 +45,7 @@ includeBuild("..") {
     dependencySubstitution {
         substitute(module("org.fisabilillah:core-model")).using(project(":core:model"))
         substitute(module("org.fisabilillah:core-policy")).using(project(":core:policy"))
+        substitute(module("org.fisabilillah:core-auth")).using(project(":core:auth"))
         substitute(module("org.fisabilillah:core-domain")).using(project(":core:domain"))
         substitute(module("org.fisabilillah:core-data")).using(project(":core:data"))
     }

@@ -1,55 +1,65 @@
 package org.fisabilillah.app.ui.screens.onboarding
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import org.fisabilillah.app.di.SessionManager
-import org.fisabilillah.app.ui.components.ContentCard
-import org.fisabilillah.app.ui.components.DisclaimerCard
-import org.fisabilillah.app.ui.components.EmptyState
-import org.fisabilillah.app.ui.components.InitialsAvatar
+import androidx.compose.ui.text.input.KeyboardType
+import kotlinx.coroutines.launch
+import org.fisabilillah.app.ui.components.LabelledField
+import org.fisabilillah.app.ui.components.PrimaryButton
 import org.fisabilillah.app.ui.components.PrivacyNote
+import org.fisabilillah.app.ui.components.RefusalNotice
 import org.fisabilillah.app.ui.components.ScreenColumn
 import org.fisabilillah.app.ui.components.SecondaryButton
 import org.fisabilillah.app.ui.components.SectionDivider
 import org.fisabilillah.app.ui.components.SectionHeader
 import org.fisabilillah.app.ui.theme.FiSabilillahTheme
-import org.fisabilillah.core.model.UserId
 
 /**
- * Development sign-in: pick one of the seeded accounts.
+ * Sign in.
  *
- * This screen is not dressed up as authentication, because pretending would make it harder
- * rather than easier to replace. There is no password field, nothing is checked, and the
- * disclaimer says so in the first thing a reader's eye lands on. Real authentication
- * (Supabase Auth) is a documented next step, and the session boundary it will sit behind
- * already exists.
+ * Two fields and one button. The restraint is the point: this is the screen a person meets
+ * when they are already slightly anxious — they have forgotten something, or they are on a
+ * new phone — and every extra element on it is a thing to be confused by.
+ *
+ * The failure message is whatever the authentication layer returned, unedited. That layer
+ * gives the same answer for a wrong password and an address with no account, deliberately,
+ * so this screen must not try to be more helpful than it: "we don't have that address"
+ * would tell anyone with a list of addresses which of the people they know are members
+ * here, and on this platform that is not a harmless fact.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SignInScreen(
-    accounts: List<SessionManager.AccountOption>,
-    onSignIn: (UserId) -> Unit,
+    onSignIn: suspend (email: String, password: String) -> String?,
     onSignUp: () -> Unit,
     onRecover: () -> Unit,
     onBack: () -> Unit,
 ) {
     val spacing = FiSabilillahTheme.spacing
+
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    var working by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    val canSubmit = email.isNotBlank() && password.isNotEmpty() && !working
 
     Scaffold(
         topBar = {
@@ -69,38 +79,57 @@ internal fun SignInScreen(
         ScreenColumn(contentPadding = padding) {
             Spacer(Modifier.height(spacing.xs))
 
-            DisclaimerCard(
-                title = "Development sign-in",
-                text = "This build has no authentication. Choosing an account below simply " +
-                    "adopts one of the sample profiles that ship with the app, and any " +
-                    "device running this build can do the same. Nothing is checked, no " +
-                    "password is asked for, and none of the database access rules that " +
-                    "protect real accounts apply here. Real sign-in, backed by Supabase " +
-                    "Auth, is the next piece of work.",
-            )
-
             SectionHeader(
-                title = "Sample accounts",
-                subtitle = "Each one has different roles, so the app behaves differently.",
+                title = "Welcome back",
+                subtitle = "Sign in with the address you registered.",
             )
 
-            if (accounts.isEmpty()) {
-                EmptyState(
-                    title = "No sample accounts were loaded",
-                    body = "The development data set did not populate. Restart the app; if " +
-                        "the list is still empty, the seed data has failed to load.",
-                )
-            } else {
-                for (account in accounts) {
-                    AccountCard(account = account, onSelect = { onSignIn(account.userId) })
-                }
+            if (error != null) {
+                RefusalNotice(message = error!!)
             }
+
+            LabelledField(
+                label = "Email address",
+                value = email,
+                onValueChange = { email = it; error = null },
+                keyboardType = KeyboardType.Email,
+                enabled = !working,
+                modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
+            )
+
+            LabelledField(
+                label = "Password",
+                value = password,
+                onValueChange = { password = it; error = null },
+                keyboardType = KeyboardType.Password,
+                secret = true,
+                enabled = !working,
+                modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
+            )
+
+            Spacer(Modifier.height(spacing.sm))
+
+            PrimaryButton(
+                text = "Sign in",
+                onClick = {
+                    working = true
+                    error = null
+                    scope.launch {
+                        error = onSignIn(email.trim(), password)
+                        working = false
+                    }
+                },
+                enabled = canSubmit,
+                loading = working,
+                modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
+            )
 
             Spacer(Modifier.height(spacing.sm))
 
             PrivacyNote(
-                text = "Sample accounts and everything they do live in memory only. Nothing " +
-                    "survives closing the app, and no data leaves the device.",
+                text = "Your password is checked by the server and never stored on this " +
+                    "device. Staying signed in keeps a token that can be revoked, not your " +
+                    "password.",
                 modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
             )
 
@@ -109,46 +138,18 @@ internal fun SignInScreen(
             SecondaryButton(
                 text = "Create an account instead",
                 onClick = onSignUp,
+                enabled = !working,
                 modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
             )
             Spacer(Modifier.height(spacing.xs))
             SecondaryButton(
                 text = "I cannot get into my account",
                 onClick = onRecover,
+                enabled = !working,
                 modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
             )
 
             Spacer(Modifier.height(spacing.md))
-        }
-    }
-}
-
-@Composable
-private fun AccountCard(
-    account: SessionManager.AccountOption,
-    onSelect: () -> Unit,
-) {
-    val spacing = FiSabilillahTheme.spacing
-    ContentCard(
-        onClick = onSelect,
-        contentDescription = "Sign in as ${account.displayName}. ${account.summary}",
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            InitialsAvatar(name = account.displayName)
-            Spacer(Modifier.width(spacing.sm))
-            Column {
-                Text(
-                    text = account.displayName,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Spacer(Modifier.height(spacing.xxs))
-                Text(
-                    text = account.summary.ifBlank { "No roles recorded" },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
         }
     }
 }

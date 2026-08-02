@@ -23,11 +23,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.KeyboardType
+import kotlinx.coroutines.launch
 import org.fisabilillah.app.ui.components.ContentCard
+import org.fisabilillah.app.ui.components.LabelledField
+import org.fisabilillah.app.ui.components.RefusalNotice
 import org.fisabilillah.app.ui.components.DisclaimerCard
 import org.fisabilillah.app.ui.components.PrimaryButton
 import org.fisabilillah.app.ui.components.PrivacyNote
@@ -38,23 +43,39 @@ import org.fisabilillah.app.ui.components.SectionHeader
 import org.fisabilillah.app.ui.theme.FiSabilillahTheme
 
 /**
- * Account creation begins with an age gate, and the age gate is the whole screen.
+ * Account creation begins with an age gate, and the age gate comes before the form.
  *
  * An age declaration that is one grey line of small print under a button is a formality.
  * This one is a decision a person has to make deliberately, with the consequence of getting
  * it wrong stated next to it, because the platform's child-safety posture rests entirely on
- * adults being adults here.
+ * adults being adults here. The credential fields stay disabled until both declarations are
+ * made — not to be obstructive, but so that the order of the screen matches the order of
+ * the decision.
+ *
+ * The address is asked for once. There is no "confirm your email" field, because it does
+ * not confirm anything: the confirmation message does that, and a second box mostly
+ * teaches people to paste.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SignUpScreen(
-    onContinue: () -> Unit,
+    onCreateAccount: suspend (email: String, password: String) -> SignUpMessage,
     onSignIn: () -> Unit,
     onBack: () -> Unit,
 ) {
     val spacing = FiSabilillahTheme.spacing
     var declaredAdult by remember { mutableStateOf(false) }
     var acceptedPurpose by remember { mutableStateOf(false) }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    var confirmation by remember { mutableStateOf<String?>(null) }
+    var working by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    val declarationsMade = declaredAdult && acceptedPurpose
+    val canSubmit = declarationsMade && email.isNotBlank() &&
+        password.length >= MINIMUM_PASSWORD_LENGTH && !working
 
     Scaffold(
         topBar = {
@@ -118,21 +139,87 @@ internal fun SignUpScreen(
                 onCheckedChange = { acceptedPurpose = it },
             )
 
+            SectionDivider()
+
+            SectionHeader(
+                title = "Your sign-in details",
+                subtitle = "You will be sent a message to confirm the address.",
+            )
+
+            if (error != null) {
+                RefusalNotice(message = error!!)
+            }
+
+            if (confirmation != null) {
+                ContentCard {
+                    Text(
+                        text = confirmation!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+
+            LabelledField(
+                label = "Email address",
+                value = email,
+                onValueChange = { email = it; error = null },
+                keyboardType = KeyboardType.Email,
+                enabled = declarationsMade && !working,
+                helper = "Used to sign in, to confirm your account, and to reach you about " +
+                    "safety matters. It is never shown to other members.",
+                modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
+            )
+
+            LabelledField(
+                label = "Password",
+                value = password,
+                onValueChange = { password = it; error = null },
+                keyboardType = KeyboardType.Password,
+                secret = true,
+                enabled = declarationsMade && !working,
+                helper = "At least $MINIMUM_PASSWORD_LENGTH characters, and not one you use " +
+                    "on another site.",
+                error = if (password.isNotEmpty() && password.length < MINIMUM_PASSWORD_LENGTH) {
+                    "A little longer, please."
+                } else {
+                    null
+                },
+                modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
+            )
+
             Spacer(Modifier.height(spacing.sm))
 
             PrimaryButton(
-                text = "Continue",
-                onClick = onContinue,
+                text = "Create account",
+                onClick = {
+                    working = true
+                    error = null
+                    confirmation = null
+                    scope.launch {
+                        when (val message = onCreateAccount(email.trim(), password)) {
+                            is SignUpMessage.Failed -> error = message.text
+                            is SignUpMessage.CheckYourEmail -> {
+                                confirmation = message.text
+                                password = ""
+                            }
+                            is SignUpMessage.Continue -> Unit   // navigation has taken over
+                        }
+                        working = false
+                    }
+                },
                 modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
-                enabled = declaredAdult && acceptedPurpose,
+                enabled = canSubmit,
+                loading = working,
             )
 
             Spacer(Modifier.height(spacing.xs))
 
             Text(
-                text = if (declaredAdult && acceptedPurpose) {
-                    "Next you will set up a profile, choose the areas you can help with, and " +
-                        "choose your safeguards. You can change all of it afterwards."
+                text = if (declarationsMade) {
+                    "After you confirm your address you will set up a profile, choose the " +
+                        "areas you can help with, and choose your safeguards. You can change " +
+                        "all of it afterwards."
                 } else {
                     "Both confirmations above are needed before you can continue."
                 },
@@ -215,4 +302,21 @@ private fun CheckRow(
             )
         }
     }
+}
+
+/** Minimum accepted by [org.fisabilillah.core.auth.SupabaseAuthGateway]. Stated, not implied. */
+private const val MINIMUM_PASSWORD_LENGTH = 8
+
+/**
+ * What the sign-up screen should say after an attempt.
+ *
+ * [CheckYourEmail] is returned whether the address was new or already registered. That is
+ * not vagueness for its own sake: telling a stranger which addresses already have accounts
+ * here would let anyone with a contact list work out who among their acquaintances is a
+ * member, and on this platform that is a fact worth protecting.
+ */
+internal sealed interface SignUpMessage {
+    data class CheckYourEmail(val text: String) : SignUpMessage
+    data object Continue : SignUpMessage
+    data class Failed(val text: String) : SignUpMessage
 }

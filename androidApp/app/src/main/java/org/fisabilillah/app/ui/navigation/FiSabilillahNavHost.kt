@@ -15,6 +15,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.launch
 import org.fisabilillah.app.di.AppGraph
+import org.fisabilillah.app.di.SignInResult
+import org.fisabilillah.app.di.SignUpResult
 import org.fisabilillah.app.di.anonymousViewModelFactory
 import org.fisabilillah.app.di.viewModelFactory
 import org.fisabilillah.app.ui.screens.community.CommunityDetailScreen
@@ -43,6 +45,7 @@ import org.fisabilillah.app.ui.screens.onboarding.OnboardingSafeguardsScreen
 import org.fisabilillah.app.ui.screens.onboarding.OnboardingSkillsScreen
 import org.fisabilillah.app.ui.screens.onboarding.OnboardingState
 import org.fisabilillah.app.ui.screens.onboarding.SignInScreen
+import org.fisabilillah.app.ui.screens.onboarding.SignUpMessage
 import org.fisabilillah.app.ui.screens.onboarding.SignUpScreen
 import org.fisabilillah.app.ui.screens.profile.AccountDataScreen
 import org.fisabilillah.app.ui.screens.profile.EditProfileScreen
@@ -83,6 +86,7 @@ import org.fisabilillah.app.ui.viewmodel.SafeguardViewModel
 import org.fisabilillah.app.ui.viewmodel.ServeViewModel
 import org.fisabilillah.app.ui.viewmodel.SubmitIntroductionViewModel
 import org.fisabilillah.app.ui.viewmodel.WaliViewModel
+import org.fisabilillah.core.auth.MemberRegistration
 import org.fisabilillah.core.domain.CompleteOnboardingUseCase
 import org.fisabilillah.core.domain.IntroductionDecisionAction
 import org.fisabilillah.core.domain.Outcome
@@ -126,6 +130,8 @@ internal fun FiSabilillahNavHost(
     graph: AppGraph,
     contentPadding: PaddingValues,
     showModeration: Boolean,
+    /** Decided once, from the restored session. See MainActivity for why it is not a navigate(). */
+    startDestination: String = Routes.LANDING,
 ) {
     val scope = rememberCoroutineScope()
     val principal by graph.session.principal.collectAsState()
@@ -142,9 +148,19 @@ internal fun FiSabilillahNavHost(
         }
     }
 
+    // A signed-in account with no profile has nowhere else to be. The landing screen is
+    // popped so that "back" from the first onboarding step does not return to a sign-in
+    // form for an account that is already signed in.
+    fun goOnboarding() {
+        navController.navigate(Routes.ONBOARDING_PROFILE) {
+            popUpTo(Routes.LANDING) { inclusive = true }
+            launchSingleTop = true
+        }
+    }
+
     NavHost(
         navController = navController,
-        startDestination = Routes.LANDING,
+        startDestination = startDestination,
     ) {
 
         // ── Unauthenticated ───────────────────────────────────────────────────
@@ -162,10 +178,17 @@ internal fun FiSabilillahNavHost(
 
         composable(Routes.SIGN_IN) {
             SignInScreen(
-                accounts = graph.session.availableAccounts(),
-                onSignIn = { userId ->
-                    graph.session.signInAs(userId)
-                    goHome()
+                // Returns the message to show, or null when the screen is done with. The
+                // decision about where to go next is made from the session state, not from
+                // anything this screen knows.
+                onSignIn = { email, password ->
+                    when (val result = graph.session.signIn(email, password)) {
+                        is SignInResult.Ready -> { goHome(); null }
+                        is SignInResult.NeedsOnboarding -> { goOnboarding(); null }
+                        is SignInResult.SignedOut ->
+                            "That account could not be opened. Try again in a moment."
+                        is SignInResult.Failed -> result.message
+                    }
                 },
                 onSignUp = { navController.navigate(Routes.SIGN_UP) },
                 onRecover = { navController.navigate(Routes.ACCOUNT_RECOVERY) },
@@ -175,14 +198,30 @@ internal fun FiSabilillahNavHost(
 
         composable(Routes.SIGN_UP) {
             SignUpScreen(
-                onContinue = { navController.navigate(Routes.ONBOARDING_PROFILE) },
+                onCreateAccount = { email, password ->
+                    when (val result = graph.session.signUp(email, password)) {
+                        is SignUpResult.CheckYourEmail -> SignUpMessage.CheckYourEmail(
+                            "Check your inbox. If that address can be registered, a " +
+                                "confirmation message is on its way. Follow the link in it, " +
+                                "then come back and sign in.",
+                        )
+                        is SignUpResult.SignedIn -> {
+                            goOnboarding()
+                            SignUpMessage.Continue
+                        }
+                        is SignUpResult.Failed -> SignUpMessage.Failed(result.message)
+                    }
+                },
                 onSignIn = { navController.navigate(Routes.SIGN_IN) },
                 onBack = { navController.popBackStack() },
             )
         }
 
         composable(Routes.ACCOUNT_RECOVERY) {
-            AccountRecoveryScreen(onBack = { navController.popBackStack() })
+            AccountRecoveryScreen(
+                onSendResetLink = { email -> graph.session.sendRecoveryEmail(email) },
+                onBack = { navController.popBackStack() },
+            )
         }
 
         // ── Onboarding ────────────────────────────────────────────────────────
@@ -655,9 +694,13 @@ internal fun FiSabilillahNavHost(
                 onAccountData = { navController.navigate(Routes.ACCOUNT_DATA) },
                 onModeration = { navController.navigate(Routes.MODERATOR_DASHBOARD) },
                 onSignOut = {
-                    graph.session.signOut()
-                    navController.navigate(Routes.LANDING) {
-                        popUpTo(Routes.HOME) { inclusive = true }
+                    scope.launch {
+                        // Signing out clears this device first and revokes server-side
+                        // afterwards, so a tap on a train still means what it says.
+                        graph.session.signOut()
+                        navController.navigate(Routes.LANDING) {
+                            popUpTo(Routes.HOME) { inclusive = true }
+                        }
                     }
                 },
             )
@@ -1028,6 +1071,23 @@ private suspend fun completeOnboarding(graph: AppGraph, state: OnboardingState):
         areasSeekingHelp = state.areasSeekingHelp,
         availability = Availability(timeZoneId = "Europe/London"),
     )
+
+    // The database first. That row is what every row-level security policy will check,
+    // and creating the local copy without it would leave a member who looks set up on
+    // this phone and does not exist to the server. register_member decides the role and
+    // the verification level itself; nothing privileged is sent from here.
+    val serverError = graph.session.completeServerRegistration(
+        MemberRegistration(
+            displayName = state.displayName.trim(),
+            gender = gender,
+            acceptedCovenant = state.acceptedConsents.isNotEmpty(),
+            timezone = "Europe/London",
+            yearOfBirth = state.birthYear,
+            city = state.city.trim().ifBlank { null },
+            countryCode = "GB",
+        ),
+    )
+    if (serverError != null) return serverError
 
     val outcome = graph.core.completeOnboarding(
         principal,

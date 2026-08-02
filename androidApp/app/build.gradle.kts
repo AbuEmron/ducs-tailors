@@ -15,6 +15,30 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Where this build signs in.
+        //
+        // Both values are safe to ship: the URL is public and the publishable key is the
+        // one Supabase intends to go in clients -- it grants nothing on its own, because
+        // every table is behind row-level security keyed on auth.uid(). The service-role
+        // key is NOT here and must never be; SupabaseConfig refuses one at runtime.
+        //
+        // Override for a different project with -PsupabaseUrl=... -PsupabaseKey=... or the
+        // matching environment variables, so a fork does not have to edit this file.
+        buildConfigField(
+            "String",
+            "SUPABASE_URL",
+            "\"" + (providers.gradleProperty("supabaseUrl").orNull
+                ?: System.getenv("SUPABASE_URL")
+                ?: "https://mqrooikosbhwjcdssatf.supabase.co") + "\"",
+        )
+        buildConfigField(
+            "String",
+            "SUPABASE_PUBLISHABLE_KEY",
+            "\"" + (providers.gradleProperty("supabaseKey").orNull
+                ?: System.getenv("SUPABASE_PUBLISHABLE_KEY")
+                ?: "sb_publishable_CcxLXpGAO0a5-clWVaQLUQ_0OEKSU1i") + "\"",
+        )
     }
 
     buildTypes {
@@ -44,6 +68,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
@@ -59,6 +84,7 @@ dependencies {
     implementation("org.fisabilillah:core-policy:0.1.0")
     implementation("org.fisabilillah:core-domain:0.1.0")
     implementation("org.fisabilillah:core-data:0.1.0")
+    implementation("org.fisabilillah:core-auth:0.1.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

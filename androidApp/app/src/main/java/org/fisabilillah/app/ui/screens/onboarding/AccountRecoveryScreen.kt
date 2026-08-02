@@ -13,11 +13,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
+import kotlinx.coroutines.launch
 import org.fisabilillah.app.ui.components.ContentCard
 import org.fisabilillah.app.ui.components.DisclaimerCard
+import org.fisabilillah.app.ui.components.LabelledField
+import org.fisabilillah.app.ui.components.PrimaryButton
 import org.fisabilillah.app.ui.components.PrivacyNote
 import org.fisabilillah.app.ui.components.RefusalNotice
 import org.fisabilillah.app.ui.components.ScreenColumn
@@ -27,17 +36,28 @@ import org.fisabilillah.app.ui.components.SectionHeader
 import org.fisabilillah.app.ui.theme.FiSabilillahTheme
 
 /**
- * Account recovery, which this build does not have.
+ * Getting back in.
  *
- * The screen exists rather than the route being removed, because someone who cannot get in
- * will look for it, and a dead end that explains itself is better than a form that collects
- * an email address and quietly does nothing. What it does instead is describe the process
- * that will exist, so the reader can judge whether it will actually help them.
+ * The first step — a reset link to the confirmed address — is live. The rest of the page
+ * describes the steps that are not, because someone locked out of an account whose email
+ * they have also lost needs to know whether waiting will help them, and a screen that only
+ * offers the one route it has implemented leaves them guessing.
+ *
+ * The reply is the same whether or not the address has an account. See [SignUpMessage] for
+ * the same reasoning applied to registration.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun AccountRecoveryScreen(onBack: () -> Unit) {
+internal fun AccountRecoveryScreen(
+    onSendResetLink: suspend (email: String) -> String?,
+    onBack: () -> Unit,
+) {
     val spacing = FiSabilillahTheme.spacing
+    var email by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    var sent by remember { mutableStateOf(false) }
+    var working by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -57,17 +77,59 @@ internal fun AccountRecoveryScreen(onBack: () -> Unit) {
         ScreenColumn(contentPadding = padding) {
             Spacer(Modifier.height(spacing.xs))
 
-            RefusalNotice(
-                message = "Account recovery is not available in this build. There is no " +
-                    "authentication yet, so there is no credential to reset and no account " +
-                    "to restore. Nothing you enter here would reach anyone.",
-                actionLabel = "Back to sign in",
-                onAction = onBack,
+            SectionHeader(
+                title = "Send a reset link",
+                subtitle = "To the address you registered with.",
             )
 
+            if (error != null) {
+                RefusalNotice(message = error!!)
+            }
+
+            if (sent) {
+                ContentCard {
+                    Text(
+                        text = "If that address has an account here, a reset link is on its " +
+                            "way to it. The link works once and expires shortly. We do not " +
+                            "say whether an account exists, because that would let anyone " +
+                            "with a list of addresses find out who is a member.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                }
+            }
+
+            LabelledField(
+                label = "Email address",
+                value = email,
+                onValueChange = { email = it; error = null; sent = false },
+                keyboardType = KeyboardType.Email,
+                enabled = !working,
+                modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
+            )
+
+            PrimaryButton(
+                text = "Send the link",
+                onClick = {
+                    working = true
+                    error = null
+                    scope.launch {
+                        error = onSendResetLink(email.trim())
+                        sent = error == null
+                        working = false
+                    }
+                },
+                enabled = email.isNotBlank() && !working,
+                loading = working,
+                modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
+            )
+
+            SectionDivider()
+
             SectionHeader(
-                title = "How recovery will work",
-                subtitle = "Written down now so it can be argued with before it is built.",
+                title = "If that does not work",
+                subtitle = "The rest of recovery is not built yet. Written down so it can be " +
+                    "argued with before it is.",
             )
 
             Step(
@@ -129,9 +191,10 @@ internal fun AccountRecoveryScreen(onBack: () -> Unit) {
             )
             Spacer(Modifier.height(spacing.xxs))
             Text(
-                text = "This build signs in by choosing one of the sample accounts, and any " +
-                    "of them can be chosen at any time. Nothing is lost, because nothing is " +
-                    "kept once the app is closed.",
+                text = "If you no longer have the address on the account, there is currently " +
+                    "no way for the safety team to verify that the account is yours, so there " +
+                    "is nothing they can do. That is a real gap, not a policy: identity " +
+                    "review is step three above and is not built.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
@@ -140,8 +203,8 @@ internal fun AccountRecoveryScreen(onBack: () -> Unit) {
             Spacer(Modifier.height(spacing.md))
 
             PrivacyNote(
-                text = "No email address, phone number or identity document is collected on " +
-                    "this screen.",
+                text = "The address you type here is used to send the link and for nothing " +
+                    "else. No phone number or identity document is asked for.",
                 modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
             )
 

@@ -40,6 +40,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,7 +53,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.fisabilillah.app.ui.theme.FiSabilillahTheme
@@ -462,13 +469,32 @@ internal fun LabelledField(
     minLines: Int = 1,
     keyboardType: KeyboardType = KeyboardType.Text,
     enabled: Boolean = true,
+    /**
+     * Masks the field and offers a reveal control.
+     *
+     * The reveal exists because the alternative is worse. A masked password field with no
+     * way to check what is in it is the single commonest reason people give up on signing
+     * in, and the person most likely to need it here is someone typing a long passphrase
+     * on a phone. Revealing is a deliberate tap, it is announced to a screen reader, and
+     * the field returns to masked the moment it loses focus.
+     */
+    secret: Boolean = false,
 ) {
     val spacing = FiSabilillahTheme.spacing
+    var revealed by remember { mutableStateOf(false) }
+    var focused by remember { mutableStateOf(false) }
+    val masked = secret && !(revealed && focused)
+
     Column(modifier = modifier.fillMaxWidth().padding(vertical = spacing.xs)) {
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { state ->
+                    focused = state.isFocused
+                    if (!state.isFocused) revealed = false
+                },
             label = { Text(label) },
             placeholder = placeholder?.let { { Text(it) } },
             isError = error != null,
@@ -476,6 +502,20 @@ internal fun LabelledField(
             minLines = minLines,
             enabled = enabled,
             shape = MaterialTheme.shapes.small,
+            visualTransformation = if (masked) {
+                PasswordVisualTransformation()
+            } else {
+                VisualTransformation.None
+            },
+            trailingIcon = if (!secret) {
+                null
+            } else {
+                {
+                    TextButton(onClick = { revealed = !revealed }) {
+                        Text(if (revealed) "Hide" else "Show")
+                    }
+                }
+            },
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                 keyboardType = keyboardType,
             ),

@@ -27,5 +27,6 @@ rootProject.name = "fi-sabilillah-core"
 
 include(":core:model")
 include(":core:policy")
+include(":core:auth")
 include(":core:domain")
 include(":core:data")

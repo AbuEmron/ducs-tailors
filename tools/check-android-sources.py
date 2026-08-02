@@ -145,6 +145,11 @@ def main() -> int:
     core_files = kotlin_files(CORE)
     known = declared_symbols(app_files) | declared_symbols(core_files)
 
+    # Generated at build time by the Android Gradle plugin, so it exists for the compiler
+    # but not on disk. BuildConfig carries the Supabase project URL and publishable key --
+    # see androidApp/app/build.gradle.kts.
+    known |= {"BuildConfig"}
+
     # Symbols that come from AndroidX, Compose, Kotlin and the JDK. We cannot resolve those
     # here, so imports rooted at these packages are trusted.
     external_roots = (
