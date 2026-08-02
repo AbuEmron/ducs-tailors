@@ -14,6 +14,7 @@ import org.fisabilillah.core.domain.CompleteOnboardingUseCase
 import org.fisabilillah.core.domain.ContactContextAssembler
 import org.fisabilillah.core.domain.ConversationSpace
 import org.fisabilillah.core.domain.CreateOpportunityUseCase
+import org.fisabilillah.core.domain.CreateServiceRequestUseCase
 import org.fisabilillah.core.domain.DecideIntroductionUseCase
 import org.fisabilillah.core.domain.DiscloseExactLocationUseCase
 import org.fisabilillah.core.domain.EndConversationUseCase
@@ -316,6 +317,9 @@ public class CoreGraph(
         CommitmentUseCase(commitments, trust, opportunities, ids, clock)
     public val privateImpact: PrivateImpactUseCase = PrivateImpactUseCase(trust)
     public val createOpportunity: CreateOpportunityUseCase = CreateOpportunityUseCase(
-        opportunities, clock,
+        opportunities, ids, clock,
+    )
+    public val createServiceRequest: CreateServiceRequestUseCase = CreateServiceRequestUseCase(
+        requests, ids, clock,
     )
 }

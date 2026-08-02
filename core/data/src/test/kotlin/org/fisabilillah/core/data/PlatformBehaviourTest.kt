@@ -2,6 +2,7 @@ package org.fisabilillah.core.data
 
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalTime
+import org.fisabilillah.core.domain.CreateOpportunityUseCase
 import org.fisabilillah.core.domain.OpportunitySearchCriteria
 import org.fisabilillah.core.domain.PeopleSearchCriteria
 import org.fisabilillah.core.domain.RefusalCode
@@ -321,8 +322,18 @@ class DiscoveryBehaviourTest {
 
         val invalid = harness.graph.createOpportunity(
             harness.principal(SeedData.yusuf),
-            existing.copy(
-                id = ListingId("opp-new-youth"),
+            CreateOpportunityUseCase.Command(
+                title = existing.title,
+                summary = existing.summary,
+                category = existing.category,
+                beneficiaryType = existing.beneficiaryType,
+                city = "Northfield",
+                countryCode = "GB",
+                format = existing.format,
+                volunteersNeeded = existing.volunteersNeeded,
+                completionCriteria = existing.completionCriteria,
+                startsAt = existing.startsAt,
+                endsAt = existing.endsAt,
                 backgroundCheckRequired = false,
                 childSafeguardingRequired = false,
             ),

@@ -88,6 +88,9 @@ import org.fisabilillah.app.ui.viewmodel.SubmitIntroductionViewModel
 import org.fisabilillah.app.ui.viewmodel.WaliViewModel
 import org.fisabilillah.core.auth.MemberRegistration
 import org.fisabilillah.core.domain.CompleteOnboardingUseCase
+import org.fisabilillah.core.domain.CreateOpportunityUseCase
+import org.fisabilillah.core.domain.CreateServiceRequestUseCase
+import org.fisabilillah.core.domain.DefaultOpportunityTiming
 import org.fisabilillah.core.domain.IntroductionDecisionAction
 import org.fisabilillah.core.domain.Outcome
 import org.fisabilillah.core.domain.TakeModerationActionUseCase
@@ -112,6 +115,7 @@ import org.fisabilillah.core.model.ReportTarget
 import org.fisabilillah.core.model.RequestId
 import org.fisabilillah.core.model.ServiceRequest
 import org.fisabilillah.core.model.UserId
+import org.fisabilillah.core.policy.ValidationError
 import org.fisabilillah.core.model.VolunteerOpportunity
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -350,16 +354,28 @@ internal fun FiSabilillahNavHost(
 
         composable(Routes.CREATE_LISTING) {
             var submitting by remember { mutableStateOf(false) }
+            var errors by remember { mutableStateOf<List<ValidationError>>(emptyList()) }
+            var refusal by remember { mutableStateOf<String?>(null) }
 
             CreateListingScreen(
-                errors = emptyList(),
+                errors = errors,
+                refusal = refusal,
                 submitting = submitting,
                 onSubmit = { draft ->
                     submitting = true
+                    errors = emptyList()
+                    refusal = null
                     scope.launch {
-                        createOpportunity(graph, draft)
+                        // The screen only closes on success. Popping the back stack
+                        // regardless -- which is what this did -- threw away both the
+                        // errors and everything the organiser had typed.
+                        when (val outcome = createOpportunity(graph, draft)) {
+                            is Outcome.Success -> navController.popBackStack()
+                            is Outcome.Invalid -> errors = outcome.errors
+                            is Outcome.Refused -> refusal = outcome.message
+                            is Outcome.NotFound -> refusal = "We could not find ${outcome.what}."
+                        }
                         submitting = false
-                        navController.popBackStack()
                     }
                 },
                 onBack = { navController.popBackStack() },
@@ -465,16 +481,25 @@ internal fun FiSabilillahNavHost(
 
         composable(Routes.CREATE_REQUEST) {
             var submitting by remember { mutableStateOf(false) }
+            var errors by remember { mutableStateOf<List<ValidationError>>(emptyList()) }
+            var refusal by remember { mutableStateOf<String?>(null) }
 
             CreateRequestScreen(
-                errors = emptyList(),
+                errors = errors,
+                refusal = refusal,
                 submitting = submitting,
                 onSubmit = { draft ->
                     submitting = true
+                    errors = emptyList()
+                    refusal = null
                     scope.launch {
-                        createRequest(graph, draft)
+                        when (val outcome = createRequest(graph, draft)) {
+                            is Outcome.Success -> navController.popBackStack()
+                            is Outcome.Invalid -> errors = outcome.errors
+                            is Outcome.Refused -> refusal = outcome.message
+                            is Outcome.NotFound -> refusal = "We could not find ${outcome.what}."
+                        }
                         submitting = false
-                        navController.popBackStack()
                     }
                 },
                 onBack = { navController.popBackStack() },
@@ -1114,42 +1139,34 @@ private suspend fun completeOnboarding(graph: AppGraph, state: OnboardingState):
 private suspend fun createOpportunity(
     graph: AppGraph,
     draft: org.fisabilillah.app.ui.screens.serve.CreateListingDraft,
-) {
-    val principal = graph.session.principal.value ?: return
+): Outcome<VolunteerOpportunity> {
+    val principal = graph.session.principal.value
+        ?: return Outcome.refused("You need to be signed in to publish an opportunity.")
     val now = graph.core.clock.now()
 
-    graph.core.createOpportunity(
+    return graph.core.createOpportunity(
         principal,
-        VolunteerOpportunity(
-            id = ListingId(graph.core.ids.newId()),
-            title = draft.title.trim(),
-            summary = draft.summary.trim(),
+        CreateOpportunityUseCase.Command(
+            title = draft.title,
+            summary = draft.summary,
             category = draft.category,
-            organizerId = principal.userId,
             beneficiaryType = draft.beneficiaryType,
-            place = Place(
-                approximate = ApproximateLocation(
-                    label = draft.city.trim(),
-                    city = draft.city.trim(),
-                    countryCode = "GB",
-                ),
-            ),
+            city = draft.city,
+            countryCode = "GB",
             format = draft.format,
-            // A date and time picker is a known gap in this release: an organiser cannot yet
-            // choose when the work happens, so it is provisionally set a week out. See the
-            // status section of the README.
-            startsAt = now + 7.days,
-            endsAt = now + 7.days + 4.hours,
-            volunteersNeeded = draft.volunteersNeeded.coerceAtLeast(1),
-            physicalRequirements = draft.physicalRequirements.trim().ifBlank { null },
-            safetyNotes = draft.safetyNotes.trim().ifBlank { null },
+            volunteersNeeded = draft.volunteersNeeded,
+            completionCriteria = draft.completionCriteria,
+            // A date and time picker is a known gap in this release: an organiser cannot
+            // yet choose when the work happens, so it is provisionally set a week out.
+            // See the status section of the README.
+            startsAt = now + DefaultOpportunityTiming.LEAD_TIME,
+            endsAt = now + DefaultOpportunityTiming.LEAD_TIME + DefaultOpportunityTiming.DURATION,
+            physicalRequirements = draft.physicalRequirements,
+            safetyNotes = draft.safetyNotes,
             backgroundCheckRequired = draft.backgroundCheckRequired,
-            genderArrangement = draft.genderArrangement,
             childSafeguardingRequired = draft.childSafeguardingRequired,
+            genderArrangement = draft.genderArrangement,
             expensesReimbursed = draft.expensesReimbursed,
-            completionCriteria = draft.completionCriteria.trim(),
-            createdAt = now,
-            updatedAt = now,
         ),
     )
 }
@@ -1157,36 +1174,23 @@ private suspend fun createOpportunity(
 private suspend fun createRequest(
     graph: AppGraph,
     draft: org.fisabilillah.app.ui.screens.requests.CreateRequestDraft,
-) {
-    val principal = graph.session.principal.value ?: return
-    val now = graph.core.clock.now()
+): Outcome<ServiceRequest> {
+    val principal = graph.session.principal.value
+        ?: return Outcome.refused("You need to be signed in to ask for help.")
 
-    graph.core.requests.save(
-        ServiceRequest(
-            id = RequestId(graph.core.ids.newId()),
-            requesterId = principal.userId,
-            title = draft.title.trim(),
-            description = draft.description.trim(),
+    return graph.core.createServiceRequest(
+        principal,
+        CreateServiceRequestUseCase.Command(
+            title = draft.title,
+            description = draft.description,
             category = draft.category,
             urgency = draft.urgency,
             visibility = draft.visibility,
-            place = Place(
-                approximate = ApproximateLocation(
-                    label = draft.city.trim(),
-                    city = draft.city.trim(),
-                    countryCode = "GB",
-                ),
-                // Stored, and withheld from every read path until the requester releases it
-                // to one named person through DiscloseExactLocationUseCase.
-                exact = draft.exactAddress.trim()
-                    .ifBlank { null }
-                    ?.let { ExactLocation(addressLine1 = it) },
-            ),
-            peopleAffected = draft.peopleAffected.coerceAtLeast(1),
-            expiresAt = now + 30.days,
+            city = draft.city,
+            countryCode = "GB",
+            exactAddress = draft.exactAddress,
+            peopleAffected = draft.peopleAffected,
             showSupportTotals = draft.showSupportTotals,
-            createdAt = now,
-            updatedAt = now,
         ),
     )
 }

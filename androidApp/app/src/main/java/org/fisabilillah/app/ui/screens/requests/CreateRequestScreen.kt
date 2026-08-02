@@ -64,6 +64,8 @@ internal data class CreateRequestDraft(
 @Composable
 internal fun CreateRequestScreen(
     errors: List<ValidationError>,
+    /** A reason the whole thing was refused, as opposed to a field needing attention. */
+    refusal: String?,
     submitting: Boolean,
     onSubmit: (CreateRequestDraft) -> Unit,
     onBack: () -> Unit,
@@ -88,7 +90,11 @@ internal fun CreateRequestScreen(
         },
     ) { padding ->
         ScreenColumn(contentPadding = padding) {
-            if (errors.isNotEmpty()) {
+            // A refusal is a different thing from a validation error and is shown
+            // differently: nothing the person can fix by editing a field.
+            if (refusal != null) {
+                RefusalNotice(message = refusal)
+            } else if (errors.isNotEmpty()) {
                 RefusalNotice(
                     message = "Some details still need attention. The fields concerned are " +
                         "marked below.",
