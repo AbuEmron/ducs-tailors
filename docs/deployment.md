@@ -9,14 +9,16 @@ repository.
 
 Three things have to be understood before reading further:
 
-- The Android module **has never been compiled**. A release build is not the next step; a
-  successful debug build is.
-- The app is backed by the **in-memory fixture** in `core:data`, not by the schema in
-  `backend/`. There are no Supabase-backed repository implementations yet.
-- **Authentication is a development stand-in** that selects a seeded account.
+- The Android module **compiles but has never been run**. CI assembles a debug APK on every
+  push. A release build is not the next step; running the debug one is.
+- The app's content is backed by the **in-memory fixture** in `core:data`, not by the schema
+  in `backend/`. There are no Supabase-backed repository implementations yet.
+- **Authentication is real** — GoTrue, against the live project, with tokens held under the
+  Android keystore — but it has never completed a live round trip from this repository,
+  because the build environment cannot reach `*.supabase.co`.
 
-Deploying the current state would ship an application that loses all its data on restart and
-lets anyone sign in as anyone. Do not.
+Deploying the current state would ship an application whose accounts are real and whose
+content vanishes on restart. Do not.
 
 ---
 
@@ -121,24 +123,37 @@ Checklist before any environment is created:
 
 ## 3. Authentication
 
-Not wired up. `SessionManager` in `androidApp/app/src/main/java/org/fisabilillah/app/di/AppGraph.kt`
-selects a seeded account. The production implementation obtains a session from Supabase Auth
-and derives the `Principal` from the verified token.
+Wired up. `SessionManager` in `androidApp/app/src/main/java/org/fisabilillah/app/di/AppGraph.kt`
+wraps `MemberSession` from `:core:auth`, which talks to Supabase Auth (GoTrue) and derives
+the `Principal` from `public.current_member()` — a `SECURITY DEFINER` function reading the
+profile row for `auth.uid()`. The refresh token is held under the Android keystore, AES-256-GCM.
+Full description in [`authentication.md`](authentication.md).
 
-The property that must survive that change: the `Principal` is derived from stored account
-state, never from anything a screen passes in. A view model that wanted to act as somebody
-else would have to change `SessionManager`, which is a reviewable act rather than an
-accident. Keep it that way.
+The property that must survive any change here: the `Principal` is derived from stored
+account state, never from anything a screen passes in. A view model that wanted to act as
+somebody else would have to change `SessionManager`, which is a reviewable act rather than
+an accident. Keep it that way.
+
+Done:
+
+- [x] Sessions come from Supabase Auth; the seeded-account picker is deleted, not hidden.
+- [x] Roles are read server-side from the profile row, never from a client claim.
+- [x] `VerificationPolicy.sanitizeRoleRequest` still runs on every profile write, and
+      `trg_profiles_guard_identity` rejects a self-assigned privileged role independently —
+      on INSERT as well as UPDATE.
+- [x] Account recovery does not leak whether an address is registered: an unknown address
+      and a known one produce the same screen, and sign-up for an existing address returns
+      the same "check your email" outcome as a new one.
 
 Before release:
 
-- [ ] Sessions come from Supabase Auth; `signInAs` is deleted, not merely hidden.
-- [ ] Roles are read server-side from the profile row, never from a client claim.
-- [ ] `VerificationPolicy.sanitizeRoleRequest` still runs on every profile write, and the
-      database still rejects a self-assigned privileged role independently.
+- [ ] **A live round trip has actually been observed.** Nothing in this repository has
+      reached `*.supabase.co` — the build environment blocks it — so sign-up, sign-in and
+      refresh are proven only against a fake transport and by SQL on the server side.
 - [ ] A new-device sign-in produces a `LOGIN_FROM_NEW_DEVICE` audit entry and a
       `NEW_DEVICE_LOGIN` notification, both of which already exist in the model.
-- [ ] Account recovery does not leak whether an address is registered.
+- [ ] Email confirmation redirect URLs are configured on the project for the release
+      package, not just for development.
 
 ---
 

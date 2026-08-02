@@ -91,8 +91,11 @@ internal object Routes {
     // Staff
     const val MODERATOR_DASHBOARD = "moderation"
     const val MODERATION_CASE = "moderation/case/{id}"
+    // Appeals are decided on the queue screen itself. A separate per-appeal route was
+    // declared and never wired; a moderator reading one appeal in isolation loses the
+    // thing that makes an appeal queue reviewable — the other appeals against the same
+    // decision, sitting next to it.
     const val APPEAL_QUEUE = "moderation/appeals"
-    const val REVIEW_APPEAL = "moderation/appeal/{id}"
     const val ADMIN_DASHBOARD = "admin"
     const val ROLE_ADMINISTRATION = "admin/roles"
 

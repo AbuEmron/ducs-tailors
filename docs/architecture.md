@@ -297,9 +297,12 @@ Several core concepts have a direct counterpart in the schema, and it is worth k
 
 Repeated here so that nobody reads this document alone and forms the wrong impression:
 
-- The Android module **has never been compiled** — see the status section of the
-  [root README](../README.md). Expect to fix errors on first build.
-- The app is backed by the **in-memory fixture**, not the schema in `backend/`.
-- **Authentication is a stand-in** that selects a seeded account.
+- The Android module **compiles but has never been run**. CI assembles a debug APK; no test
+  and no person has opened a screen. See the status section of the
+  [root README](../README.md).
+- The app's **content** is backed by the in-memory fixture, not the schema in `backend/`.
+  Authentication is the exception: it reaches the live Supabase project.
+- **Authentication has never completed a live round trip from Kotlin.** `core:auth` is
+  tested against a fake transport; the build environment cannot reach `*.supabase.co`.
 - **Payments are off** behind `DonationFeatureFlags.paymentsEnabled = false`.
 - **Screen copy is inline** in the Compose sources rather than in `strings.xml`.

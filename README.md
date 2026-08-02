@@ -123,12 +123,13 @@ Verified by running `./gradlew test` from the repository root:
 
 | Module | Tests | What it covers |
 | --- | --- | --- |
-| `:core:policy` | 109 | The contact gate, safeguard resolution, visibility, the introduction state machine, moderation authority, content signals, verification, and the product-principle guards |
-| `:core:data` | 53 | The same rules exercised end to end through the real use cases against seeded data |
-| **Total** | **162** | all passing |
+| `:core:policy` | 149 | The contact gate, safeguard resolution, visibility, the introduction state machine, moderation authority, content signals, signal escalation, live-session entry, verification, and the product-principle guards |
+| `:core:data` | 128 | The same rules exercised end to end through the real use cases against seeded data — plus appeals, verification, authoring, administration and recognition |
+| `:core:auth` | 26 | The GoTrue wire format and the session-refresh logic, against a fake transport |
+| **Total** | **303** | all passing |
 
-Before the product-principle suite was added the figure was 148; the ten additional tests
-assert on the shape of the domain rather than on behaviour.
+Ten of those assert on the *shape* of the domain rather than on behaviour: adding a follower
+count means deleting a test that explains why it should not exist.
 
 The centrepiece is `core/data/src/test/kotlin/org/fisabilillah/core/data/CriticalFlowsTest.kt`,
 organised around the ten flows the product specification names as must-not-fail:
@@ -144,8 +145,8 @@ organised around the ten flows the product specification names as must-not-fail:
 9. A suspended account cannot continue an existing conversation.
 10. An exact address stays private until the requester releases it.
 
-Separately, `backend/supabase/run_local_tests.sh` applies all fifteen migrations to a
-throwaway database on a real PostgreSQL 16 cluster, loads the seed, and runs **100
+Separately, `backend/supabase/run_local_tests.sh` applies all eighteen migrations to a
+throwaway database on a real PostgreSQL 16 cluster, loads the seed, and runs **130
 assertions** against the row-level security policies. It has been run and passes.
 
 More detail in [`docs/testing.md`](docs/testing.md).
@@ -157,22 +158,21 @@ More detail in [`docs/testing.md`](docs/testing.md).
 This section is deliberately near the top of the document rather than at the bottom. Read
 it before forming an impression of how finished this is.
 
-### The Android module has not been compiled
+### The Android module compiles but has never been run
 
 The Compose UI was written in an environment where `dl.google.com` is blocked by egress
-policy, so the Android SDK, the Android Gradle Plugin, and the AndroidX and Compose
-artifacts could not be downloaded. The shared core was fully built and tested and the
-database layer was fully applied and tested; **the Android module was never compiled even
-once.**
+policy, so it has never been compiled *locally*. Every compile has happened on GitHub
+Actions, which can reach the Android SDK, and that build is green — a debug APK assembles on
+every push.
 
-Expect compile errors on the first real build — missing imports, signature mismatches
-between screens and their view models, and Compose API drift. Fixing them is the first task
-of the next phase, and it is a mechanical one: the logic those screens call is already
-tested.
+What has never happened is anybody running it. There are no Android tests of any kind, and
+no human has opened a screen. Compiling proves the types line up; it says nothing about
+whether a screen renders, or behaves, or is reachable. Expect runtime problems rather than
+compile errors.
 
-### The data layer is a development fixture
+### The content layer is a development fixture
 
-The app today is backed by the in-memory repositories in
+The app's content is backed by the in-memory repositories in
 `core/data/src/main/kotlin/org/fisabilillah/core/data/InMemoryRepositories.kt`, seeded from
 `SeedData`. Nothing persists across a process restart, and none of the row-level security
 guarantees in `backend/supabase/migrations/0013_row_level_security.sql` apply to it.
@@ -181,10 +181,17 @@ The production path is the Supabase/Postgres schema in `backend/`, behind the sa
 repository interfaces declared in `core/domain/.../Repositories.kt`. Swapping it in changes
 no use case, no view model, and no screen.
 
-### Authentication is a development stand-in
+### Authentication is real, and unproven from the client
 
-`SessionManager.signInAs` in `androidApp/app/src/main/java/org/fisabilillah/app/di/AppGraph.kt`
-selects one of the seeded accounts. Real authentication (Supabase Auth) is not wired up.
+Sign-up, sign-in, password recovery and token refresh go to Supabase Auth (GoTrue) through
+`:core:auth`, and the refresh token is held under the Android keystore. Roles, gender and
+verification level are read from `public.current_member()` — never from anything a screen
+passes in — and the database rejects a self-assigned privileged role independently.
+
+The seeded-account picker is gone. What has not happened is a live round trip from Kotlin:
+the environment this was built in cannot reach `*.supabase.co`, so `core:auth` is tested
+against a fake transport and the server half is tested by SQL. See
+[`docs/authentication.md`](docs/authentication.md).
 
 ### Payments are disabled
 

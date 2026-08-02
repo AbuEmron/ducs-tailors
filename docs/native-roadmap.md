@@ -136,7 +136,7 @@ That is the entire list.
 This is the larger piece of work, and the honest estimate is that it is several times the
 size of steps 1 and 2 combined.
 
-The 162 tests currently use **JUnit 5** (`org.junit.jupiter`), which is JVM-only. Moving them
+The 303 tests currently use **JUnit 5** (`org.junit.jupiter`), which is JVM-only. Moving them
 to `commonTest` means `kotlin.test` instead:
 
 | JUnit 5 | `kotlin.test` |
@@ -279,8 +279,8 @@ survive it.
    construct `CoreGraph`, seed it, and open one conversation.
 7. Only then start the SwiftUI client.
 
-**The caution:** the Android client has never been compiled. Adding a second platform before
-the first one builds would be a mistake. The order in [`deployment.md`](deployment.md) puts a
+**The caution:** the Android client compiles but has never been run. Adding a second
+platform before the first one is known to work would be a mistake. The order in [`deployment.md`](deployment.md) puts a
 working Android build first, then the real database and authentication behind the existing
 interfaces, and only then a second client. A shared core that backs two clients is worth a
 great deal; a shared core that backs zero working clients is worth nothing.

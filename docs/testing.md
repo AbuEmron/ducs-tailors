@@ -6,11 +6,12 @@ Two suites exist and both pass.
 
 | Suite | How to run it | Result |
 | --- | --- | --- |
-| Shared core, JVM | `./gradlew test` from the repository root | **162 tests, all passing** |
-| Database, row-level security | `backend/supabase/run_local_tests.sh` | **100 assertions, all passing** |
+| Shared core, JVM | `./gradlew test` from the repository root | **303 tests, all passing** |
+| Database, row-level security | `backend/supabase/run_local_tests.sh` | **130 assertions, all passing** |
 
-There is a third thing that does not exist yet: the Android module has no passing test run,
-because it has never been compiled. See [What is not covered](#what-is-not-covered).
+There is a third thing that still does not exist: the Android module has no test run. It
+compiles now — CI assembles a debug APK — but nothing exercises it. See [What is not
+covered](#what-is-not-covered).
 
 ---
 
@@ -31,21 +32,35 @@ Kotlin JVM plugin.
 | `:core:policy` | `ContactPolicyTest` (six nested groups) | 30 |
 | | `IntroductionPolicyTest` | 18 |
 | | `ModerationPolicyTest` | 13 |
+| | `SignalEscalationPolicyTest` | 12 |
 | | `ContentSignalsTest` | 11 |
 | | `ProductPrincipleTest` | 10 |
 | | `SafeguardResolverTest` | 8 |
 | | `VerificationPolicyTest` | 8 |
 | | `VisibilityPolicyTest` | 6 |
 | | `TrustPolicyTest` | 5 |
-| | **subtotal** | **109** |
+| | `LiveSessionPolicyTest` (three nested groups) | 28 |
+| | **subtotal** | **149** |
 | `:core:data` | `CriticalFlowsTest` | 25 |
+| | `AuthoringAndAdministrationTest` | 22 |
+| | `VerificationTest` | 18 |
+| | `CreationValidationTest` | 11 |
+| | `RecognitionTest` | 11 |
+| | `AppealsAreReachableTest` | 8 |
 | | `DiscoveryBehaviourTest` | 8 |
 | | `SeedDataTest` | 8 |
 | | `MessagingBehaviourTest` | 5 |
-| | `SafeguardFloorScopeTest` | 3 |
+| | `SafetySignalsReachTheQueueTest` | 5 |
 | | `SafeguardsAreEnforcedTest` | 4 |
-| | **subtotal** | **53** |
-| | **total** | **162** |
+| | `SafeguardFloorScopeTest` | 3 |
+| | **subtotal** | **128** |
+| `:core:auth` | `SupabaseAuthGatewayTest` | 14 |
+| | `MemberSessionTest` | 12 |
+| | **subtotal** | **26** |
+| | **total** | **303** |
+
+The counts are taken from `core/*/build/test-results/test/*.xml`, which is where to re-read
+them rather than trusting this table after a change.
 
 `ProductPrincipleTest` and `SafeguardsAreEnforcedTest` are unusual: they assert on the
 *shape* of the domain rather than on behaviour. The first guards the product principles —
@@ -175,7 +190,7 @@ Requires PostgreSQL 16 locally. The script:
 2. Drops and recreates a throwaway database (`fisabilillah_test` by default).
 3. Applies `tests/00_bootstrap.sql`, the local-only `auth.*` shim that recreates on plain
    PostgreSQL what Supabase provides. **Never apply this to a Supabase project.**
-4. Applies all fifteen migrations in filename order, printing `ok` or `failed` per file.
+4. Applies all eighteen migrations in filename order, printing `ok` or `failed` per file.
 5. Applies `seed/seed.sql`.
 6. Runs `tests/rls_tests.sql` and counts `PASS:` and `FAIL:` lines.
 
@@ -183,9 +198,9 @@ It exits non-zero on any migration, seed, or assertion failure, and it has been 
 real PostgreSQL 16:
 
 ```
-PASS: schema summary -- 58 tables, 162 policies
+PASS: schema summary -- 59 tables, 162 policies
 ---------------------------------------------------------------
-RESULT: PASS  (100 assertions passed)
+RESULT: PASS  (130 assertions passed)
 ```
 
 These are authorisation tests, not schema tests: they set a session's `auth.uid()` and check
@@ -211,7 +226,7 @@ control, because a policy that denies *everyone* otherwise passes by accident.
 | --- | --- |
 | **Shared core (JVM)** | JDK 21, `./gradlew build test`, uploads the HTML reports. Needs no SDK, no emulator, and no Google Maven access — which is the whole point of keeping the core Android-free. |
 | **Database schema and row-level security** | A `postgres:16` service container, `psql` installed, `backend/supabase/run_local_tests.sh`. |
-| **Android client** | Sets up the Android SDK and runs `assembleDebug testDebugUnitTest` in `androidApp/`. The workflow states in a comment that this job is expected to need fixing on its first successful run. |
+| **Android client** | Sets up the Android SDK and runs `assembleDebug testDebugUnitTest` in `androidApp/`. It passes: the APK assembles. `testDebugUnitTest` has nothing to run. |
 
 ---
 
@@ -219,12 +234,18 @@ control, because a policy that denies *everyone* otherwise passes by accident.
 
 State this plainly to anyone picking the project up.
 
-**The Android module has no test run at all.** It has never been compiled. `androidApp/app`
-declares JUnit 5 and `kotlinx-coroutines-test` for unit tests and Espresso plus
-`compose-ui-test-junit4` for instrumentation, but there are no test sources yet and no
-evidence any of it works. The first task is a successful `assembleDebug`; the second is a
-view-model test for at least the compose-conversation and safeguard-settings screens, which
-are where a UI bug could actually cost someone their privacy.
+**The Android module has no test run at all.** It compiles — CI assembles a debug APK on
+every push — but `androidApp/app` declares JUnit 5, `kotlinx-coroutines-test`, Espresso and
+`compose-ui-test-junit4` against no test sources whatsoever. Compiling proves the types line
+up and nothing else. The next task is a view-model test for at least the compose-conversation
+and safeguard-settings screens, which are where a UI bug could actually cost someone their
+privacy.
+
+**Authentication has never completed a live round trip.** `core:auth` is tested against a
+fake transport: 26 tests covering the wire format, the 422 `user_already_exists` collapse,
+and the refresh window. The build container cannot reach `*.supabase.co`, so no real
+sign-up, sign-in or refresh has been observed from Kotlin. The server half is covered from
+the other direction, by SQL, in sections 16–18 of `rls_tests.sql`.
 
 **No property-based or fuzz testing.** `ContactPolicy.evaluate` is a long ordered sequence
 of checks with many interacting inputs. It is covered case by case and the cases are

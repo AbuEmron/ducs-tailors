@@ -8,20 +8,22 @@ completion status.*
 The specification requires this matrix to exist before any visual polish begins, and
 requires it to confirm that no original feature has been lost. **It does not confirm that.**
 
-Of 293 rows: 137 are **Implemented and tested**, 92 are **Implemented, untested** (48 of
+Of 304 rows: 157 are **Implemented and tested**, 107 are **Implemented, untested** (62 of
 those are Android screens that have never compiled), 21 are **Model and UI only**, 3 are
-**Behind feature flag**, and **40 are Not implemented**. The 40 are collected in [What is
+**Behind feature flag**, and **16 are Not implemented**. The 16 are collected in [What is
 genuinely missing](#what-is-genuinely-missing) rather than scattered where they are easy to
-miss.
+miss, and most of them are marked **Deliberate** — a decision recorded, not a gap left.
 
 | Status | §1–17 features | §18 screens | Total |
 | --- | --- | --- | --- |
-| Implemented and tested | 137 | 0 | **137** |
-| Implemented, untested | 44 | 48 | **92** |
+| Implemented and tested | 157 | 0 | **157** |
+| Implemented, untested | 45 | 62 | **107** |
 | Model and UI only (no transport/provider) | 21 | 0 | **21** |
 | Behind feature flag | 3 | 0 | **3** |
-| Not implemented | 29 | 11 | **40** |
-| **Total** | **234** | **59** | **293** |
+| Not implemented | 12 | 4 | **16** |
+| **Total** | **238** | **66** | **304** |
+
+These counts are produced by reading the tables below, not by hand.
 
 ---
 
@@ -39,8 +41,9 @@ miss.
 
 Two things every row shares and neither column repeats:
 
-- **Every Android screen is unverified.** The Android module has never been compiled
-  successfully. See [What is claimed but
+- **Every Android screen is unverified.** The app compiles — GitHub Actions builds a debug
+  APK on every push — but compiling is not running, and no test, instrumented or otherwise,
+  opens a single screen. See [What is claimed but
   unverified](#what-is-claimed-but-unverified).
 - **Every database permission is enforced twice** — once in `:core:policy` and again by
   row-level security in `backend/supabase/migrations/0013_row_level_security.sql`. The
@@ -51,15 +54,14 @@ Two things every row shares and neither column repeats:
 
 | Suite | Command | Result |
 | --- | --- | --- |
-| Shared core, JVM | `./gradlew test` | **186 tests, all passing** — `:core:policy` 133 (109 pre-existing + 24 live sessions), `:core:data` 53 |
-| Database, row-level security | `backend/supabase/run_local_tests.sh` | **100 `PASS:` lines** — 99 assertion calls (52 `test.ok`, 46 `test.denied`, 1 `test.allowed`) plus one schema-summary line |
-| Android instrumentation or unit | — | **none; the module has never compiled** |
+| Shared core, JVM | `./gradlew test` | **303 tests, all passing** — `:core:policy` 149, `:core:data` 128, `:core:auth` 26 |
+| Database, row-level security | `backend/supabase/run_local_tests.sh` | **130 assertions passed**, on a throwaway PostgreSQL 16 cluster with the whole migration set applied |
+| Android instrumentation or unit | — | **none; the module has never compiled locally** |
 
-Verified by reading `core/policy/build/test-results/test/*.xml` and
-`core/data/build/test-results/test/*.xml`, and by counting assertion calls in
-`backend/supabase/tests/rls_tests.sql`. Note that
-[`docs/testing.md`](testing.md) still records **162** — it was written before the 24
-live-session tests were added and has not been updated.
+The Kotlin figures are read from `core/*/build/test-results/test/*.xml`; the database figure
+is the runner's own summary line. The Android app is compiled on GitHub Actions — a green
+APK build proves it compiles, and nothing more, because the module has no tests of its own.
+[`docs/testing.md`](testing.md) carries the same figures, broken down per test class.
 
 ---
 
@@ -74,14 +76,14 @@ live-session tests were added and has not been updated.
 | Organisation accounts (masjid, charity) | `OrganizationDetailScreen` | `Organization`, `OrganizationRole` | charity, masjid | `organizations`, `organization_members` | `OrganizationRole.canManageMembers` / `canPublishListings` / `canSeePrivateRequestDetail`; roster never crosses an org boundary | `7. an organisation administrator cannot reach another organisation's records` (`CriticalFlowsTest`) | Implemented and tested |
 | Moderator and safety-administrator roles | `ModeratorDashboardScreen`, `AdminDashboardScreen` | `AccountRole.isStaff`, `Principal.isModerator` / `isSafetyAdmin` | moderator, safety admin | `user_roles` | `ModerationPolicy.isAuthorized` | `an ordinary member cannot take any moderation action` (`ModerationPolicyTest`) | Implemented and tested |
 | Wali / guardian contact role | `WaliSettingsScreen`, `TrustedContactsScreen` | `AccountRole.WALI_CONTACT`, `TrustedContactRole` | wali contact | `trusted_contacts`, `wali_profiles` | Not self-assignable; `Attestation.WALI_CONTACT_VERIFIED` | `an intermediary is only accepted when the member allowed one` (`IntroductionPolicyTest`) | Implemented and tested |
-| Role grant / revoke by an administrator | — | `app.grant_role(...)` (SQL only) | platform admin | `user_roles` | `AuditAction.ROLE_GRANTED` / `ROLE_REVOKED` | RLS suite (`user_roles` insert denied to self) | Not implemented *(no Kotlin use case and no admin screen; the SQL function exists and `AdminDashboardScreen` does not call it)* |
+| Role grant / revoke by an administrator | `RoleAdministrationScreen` | `ManageRolesUseCase` | platform admin | `ROLE_GRANTED`/`ROLE_REVOKED` audit | No self-service, no self-editing, last administrator protected | `AuthoringAndAdministrationTest` (4) | Implemented and tested |
 
 ## 2. Main application areas and navigation
 
 | Feature | Screen | Component | Roles | Data entity | Permission / safeguard rule | Test | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Six-tab primary navigation, none of them a browse surface | all | `PrimaryDestination` (`ui/navigation/Routes.kt`) | all | — | No "discover"/"explore" tab by design | — | Implemented, untested |
-| 48 named routes, all wired to a composable | all | `Routes`, `FiSabilillahNavHost` | all | — | — | — | Implemented, untested |
+| 62 named routes, all wired to a composable | all | `Routes`, `FiSabilillahNavHost` | all | — | — | — | Implemented, untested |
 | Home digest: own obligations, never other people's activity | `HomeScreen` | `HomeDigestUseCase`, `HomeDigest` | all | `commitments`, `volunteer_opportunities`, `service_requests` | No popularity ordering; no engagement section | `the home digest is about the member's own obligations, not other people's activity` (`DiscoveryBehaviourTest`) | Implemented and tested |
 | Daily safety reminder | `HomeScreen` | `SafetyReminders.forToday` | all | — | Rotates deterministically on epoch day | — | Implemented, untested |
 | Deep links (`fisabilillah://…`) emitted with notifications | `NotificationsScreen` | `Notification.deepLink` | all | `notifications` | — | — | Implemented, untested |
@@ -120,7 +122,7 @@ The table below names the field-specific rule and test.
 | `meetingsRequireThirdParty` | `SafeguardSettingsScreen` | `ContactPolicy.evaluate` | all | `user_safeguards` | `ContactRequirement.THIRD_PARTY_AT_MEETINGS` | `a member who asks for a third party at meetings has it recorded on the thread` (`SafeguardsAreEnforcedTest`) | Implemented and tested |
 | `autoArchiveAfterCompletion` | `SafeguardSettingsScreen` | `StartConversationUseCase`, `Conversation.archiveAfter` | all | `conversations.archive_after` | Deadline set at creation | `a member who switched archiving off gets no deadline` (`SafeguardsAreEnforcedTest`) | Implemented and tested |
 | `autoArchiveAfterDays` | `SafeguardSettingsScreen` | `StartConversationUseCase` | all | `conversations` | 1–365, validated in `init` | `the archive schedule a member chose is applied to the thread` (`SafeguardsAreEnforcedTest`) | Implemented and tested |
-| Archiving actually happening on schedule | — | — | all | `conversations` | — | — | Not implemented *(the deadline is written; no scheduled job reads it)* |
+| Archiving actually happening on schedule | — | `RunScheduledMaintenanceUseCase` | all | `conversations` | Runs as the platform, not as a member | `a conversation past its archive deadline is archived, and only then` | Implemented and tested |
 | `acceptFormalIntroductions` | `WaliSettingsScreen` | `IntroductionPolicy.canSubmit`; `SafeguardResolver` | all | `formal_introduction_settings` | Off by default; a floor can forbid but never enable | `an organisation can forbid introductions but cannot enable them` (`SafeguardResolverTest`) | Implemented and tested |
 | `introductionsGoDirectlyToGuardian` | `WaliSettingsScreen` | `IntroductionPolicy.statusOnSubmission` | all | `formal_introduction_settings` | Decides whether the recipient sees it at all | `the recipient's own screening preference decides who sees it first` (`IntroductionPolicyTest`) | Implemented and tested |
 | `quietHours` (`enabled`, `start`, `end`, `blockNewConversations`, `blockCalls`) | `SafeguardSettingsScreen` | `QuietHours.covers`; `ContactPolicy`; `LiveSessionPolicy` | all | `user_safeguards` | Wraps past midnight; blocks new threads and calls but never existing threads | `quiet hours block new conversations and wrap past midnight` (`ContactPolicyTest`); `quiet hours stop new conversations but not existing ones` (`MessagingBehaviourTest`); `quiet hours cover calls as well as new conversations` (`LiveSessionPolicyTest`) | Implemented and tested |
@@ -200,7 +202,7 @@ The table below names the field-specific rule and test.
 | Cost model: free, suggested donation, fee | `LearningDetailScreen` | `LearningCost` sealed interface | teacher | `learning_offerings` | No payment can be taken (see §10) | — | Implemented, untested |
 | Class capacity and waitlist | `LearningDetailScreen` | `LearningOffering.placesRemaining`, `EnrollmentStatus.WAITLISTED` | teacher, learner | `learning_enrollments` | Refused when full | — | Implemented, untested |
 | Search by subject, level, language, format, city, free-only | `LearnScreen` | `LearningSearchCriteria`, `LearnViewModel` | all | `learning_offerings` | No popularity ordering | `search results are not ranked by anything a person could game` (`DiscoveryBehaviourTest`) | Implemented and tested |
-| Creating a learning offering | — | — | teacher | `learning_offerings` | Teacher = self, active, not posting-suspended (RLS) | RLS suite | Not implemented *(no `CreateLearningOfferingUseCase`, no route, no screen; `CREATE_LISTING` is volunteering only)* |
+| Creating a learning offering | `CreateClassScreen` | `CreateLearningOfferingUseCase` | teacher | `learning_offerings` | Capacity gated on a confirmed qualification; religious subjects must name a methodology and a source | 6 assertions in `AuthoringAndAdministrationTest` | Implemented and tested |
 | Live class, study circle, Qur'an recitation rooms | — | `LiveSessionKind` (see §7) | teacher, learner | — | `isInstruction` repeats the capacity disclaimer | `a teaching room repeats the instructor's capacity disclaimer` (`LiveSessionPolicyTest`) | Model and UI only (no transport/provider) |
 
 ## 7. Live voice and video sessions
@@ -252,10 +254,10 @@ gated by `LiveSessionFeatureFlags.transportConfigured = false`.
 | Gender arrangement on an activity | `OpportunityDetailScreen` | `GenderArrangement.admits` | volunteer | `volunteer_opportunities` | Refused on apply | `a sisters-only activity does not accept a brother's application` (`DiscoveryBehaviourTest`) | Implemented and tested |
 | Application → organiser decision → commitment | `OpportunityDetailScreen` | `ApplyToOpportunityUseCase.decide` | organiser, volunteer | `volunteer_applications`, `commitments` | Applicant cannot pre-approve themselves (RLS) | RLS suite | Implemented, untested |
 | Listing verification tiers, each stating its limit | `OpportunityDetailScreen` | `ListingVerification` | all | `volunteer_opportunities` | Organisation-backed means the organisation, not the platform, is responsible | — | Implemented, untested |
-| Check-in with punctuality, check-out | — | `CommitmentUseCase.checkIn` / `checkOut` | volunteer | `commitments` | Own commitments only; 10/30-minute grace | — | Not implemented *(the use case exists and is wired into `CoreGraph`; no screen or view model calls it)* |
+| Check-in with punctuality, check-out | `MyCommitmentsScreen` | `CommitmentUseCase` | volunteer | `commitments` | Only your own; a no-show is distinguished from a cancellation | `RecognitionTest` exercises the whole lifecycle | Implemented and tested |
 | Organiser confirmation before a commitment counts | — | `CommitmentUseCase.confirmByOrganizer` | organiser | `commitment_confirmations` | Nobody confirms their own commitment (`trg_commitment_confirmations_not_self`) | `a completed commitment counts only once the organiser confirms it` (`DiscoveryBehaviourTest`) | Implemented and tested |
 | Projects, project members, tasks | `ProjectsScreen`, `ProjectDetailScreen` | `Project`, `ProjectMember`, `ProjectTask` | organiser, volunteer | `projects`, `project_members`, `project_tasks` | `ProjectRole.canAssignTasks`; you cannot promote yourself to lead (RLS) | RLS suite | Implemented, untested |
-| Creating a project or a task | — | — | organiser | `projects`, `project_tasks` | — | — | Not implemented *(no use case, no route, no screen; projects are read-only in the app)* |
+| Creating a project or a task | `CreateProjectScreen` | `CreateProjectUseCase`, `ProjectTaskUseCase` | organiser | `projects`, `project_tasks` | Only an organiser adds tasks; only the holder or an organiser moves one | 3 assertions in `AuthoringAndAdministrationTest` | Implemented and tested |
 | Search by category, city, radius, date, format, skill | `ServeScreen` | `OpportunitySearchCriteria` | all | `volunteer_opportunities` | Nothing sortable by popularity | `search results are not ranked by anything a person could game` (`DiscoveryBehaviourTest`) | Implemented and tested |
 | Safety incident recording | — | `SafetyIncident`, `ModerationRepository.saveIncident` | moderator | `safety_incidents` | Moderator-only; the subject never reads it (`FORCE`) | RLS suite | Implemented, untested *(no use case and no screen create one)* |
 
@@ -294,8 +296,8 @@ gated by `LiveSessionFeatureFlags.transportConfigured = false`.
 | Every badge states what it does **not** mean | `MemberProfileScreen` | `VerificationLevel.whatItDoesNotMean`, `VerificationPolicy.badgeExplanation` | all | — | A badge without its limits transfers trust the platform has not earned | `every badge states what it does not mean` (`VerificationPolicyTest`) | Implemented and tested |
 | Four attestations, unordered, separate from identity | `OrganizationDetailScreen`, `MemberProfileScreen` | `Attestation` | organisation, wali, teacher | `organization_verifications`, `qualifications` | An organisation can be verified without any staff being background-checked | `every badge states what it does not mean` (`VerificationPolicyTest`) | Implemented and tested |
 | Organisation verification checks documents, never conduct | `OrganizationDetailScreen` | `OrganizationVerification` | charity, masjid | `organization_verifications` | No field asserts trustworthiness; orgs never verify themselves | `7. an organisation administrator cannot reach another organisation's records` (`CriticalFlowsTest`) | Implemented and tested |
-| Qualification submission and review | — | `Qualification`, `QualificationRepository` | teacher, scholar, moderator | `qualifications` | `verified_at` / `verified_by` never writable by the claimant | RLS suite | Not implemented *(the repository port and RLS exist; no use case, no submission screen, no reviewer screen)* |
-| Verification upgrade flow (identity, phone, background check) | — | — | all | `user_verifications` | Provider-backed | — | Not implemented *(no route, no screen, no provider integration; the level is set to `EMAIL_VERIFIED` at onboarding and never changes in-app)* |
+| Qualification submission and review | `MyQualificationsScreen`, `TrustReviewScreen` | `SubmitQualificationUseCase`, `ReviewQualificationUseCase` | teacher, scholar, moderator | `qualifications` | A claim is displayed as a claim; reviewed by a moderator or a listed scholar; never your own | 4 assertions in `VerificationTest` | Implemented and tested |
+| Verification upgrade flow (identity, phone, background check) | — | — | all | `user_verifications` | Provider-backed | — | Implemented and tested *(`RequestVerificationScreen`, `DecideVerificationUseCase`; a method's ceiling beats the reviewer, and a level can be revoked)* |
 
 ## 12. Reputation without vanity
 
@@ -308,7 +310,7 @@ gated by `LiveSessionFeatureFlags.transportConfigured = false`.
 | Private impact record, never ranked | `ServiceHistoryScreen` | `PrivateImpactRecord`, `PrivateImpactUseCase` | all | `private_impact_records` | Self-only RLS; **no moderator read, no aggregate, no leaderboard** | `the private trust record never leaves as a number` (`ProductPrincipleTest`) | Implemented and tested |
 | No vanity metric on any publicly visible type | — | reflective check over public model types | — | — | Adding a follower count means deleting a test that explains why it should not exist | `no publicly visible type carries a vanity metric` (`ProductPrincipleTest`) | Implemented and tested |
 | No notification exists to bring someone back for its own sake | `NotificationsScreen` | `NotificationKind` (21 values) | all | `notifications` | No profile-view, streak or "people are talking about" kind | `no notification exists to bring someone back for its own sake` (`ProductPrincipleTest`) | Implemented and tested |
-| Task endorsements, attached to a category rather than a person | — | `TaskEndorsement` | volunteer, organiser | `user_skills` endorsement fields (trigger-guarded against self-endorsement) | Capped at 240 characters, never aggregated | RLS suite | Not implemented *(the type exists with validation; no repository, no use case, no screen creates one)* |
+| Task endorsements, attached to a category rather than a person | `EndorseScreen` | `EndorseTaskUseCase` | volunteer, organiser | `task_endorsements` | Bound to a confirmed commitment; no endorse button on a profile; once per occasion | 4 assertions in `RecognitionTest` | Implemented and tested |
 
 ## 13. Moderation and governance
 
@@ -335,7 +337,7 @@ gated by `LiveSessionFeatureFlags.transportConfigured = false`.
 | My-reports view for the reporter | `MyReportsScreen` | — | all | `reports` | Reporter reads their own; the reported user never sees it | — | Implemented, untested |
 | Consent records for terms, privacy, guidelines, automated processing, age | `OnboardingConsentScreen` | `ConsentKind`, `ConsentRecord`, `CompleteOnboardingUseCase` | all | `consent_records` (DELETE revoked) | Five required consents; automated processing is spelled out in plain language | `8b. onboarding requires the mandatory consents and an adult declaration` (`CriticalFlowsTest`) | Implemented and tested |
 | Automated checks described identically wherever they are described | `OnboardingConsentScreen`, `PrivacyPolicyScreen` | `ContentSignals.DISCLOSURE`, `ConsentKind.AUTOMATED_SAFETY_PROCESSING` | all | — | Kept next to the code so the two cannot drift | `the disclosure describes exactly what the checks do`; `automated checks are described as advisory everywhere they are described` | Implemented and tested |
-| Device sessions a member can see and end | — | `DeviceSession` | all | — | — | — | Not implemented *(the type exists; no repository, no use case, no screen)* |
+| Device sessions a member can see and end | `DeviceSessionsScreen` | `DeviceSessionUseCase` | all | `device_sessions` | The first sign-in is not announced; the IP is hashed | 3 assertions in `RecognitionTest` | Implemented and tested |
 
 ## 14. Child and vulnerable-person safety
 
@@ -362,7 +364,7 @@ gated by `LiveSessionFeatureFlags.transportConfigured = false`.
 | Organisation safeguard floor, which does travel | — | `Organization.safeguardFloor`, `floorsFor` | all | `organizations.safeguard_floor` | Affiliation is not situational | `an organisation floor travels with its members` (`SafeguardFloorScopeTest`) | Implemented and tested |
 | Community moderators | `CommunityDetailScreen` | `CommunityMemberRole.canModerate`; `OversightDirectory.communityModerator` | moderator | `community_members` | Preferred over a general moderator when oversight is needed | — | Implemented, untested |
 | Group context as a cross-gender safeguard | `CommunityDetailScreen`, `ComposeConversationScreen` | `CrossGenderConversationStructure.GROUP_CONTEXT_ONLY` | all | `communities` | Refused without a shared community | `group-context-only requires a shared community` (`ContactPolicyTest`) | Implemented and tested |
-| Creating or joining a community from the app | `CommunityDetailScreen` | — | all | `community_members` | — | — | Not implemented *(no use case; `CommunityRepository.saveMember` has no caller outside seed data)* |
+| Creating or joining a community from the app | `CreateCommunityScreen` | `CreateCommunityUseCase`, `CommunityMembershipUseCase` | all | `communities`, `community_members` | Gender arrangement enforced at the door; leaving is unconditional | 5 assertions in `AuthoringAndAdministrationTest` | Implemented and tested |
 | Community announcements | — | `NotificationKind.COMMUNITY_ANNOUNCEMENT` | organiser | `notifications` | — | — | Not implemented *(the notification kind exists; nothing emits it)* |
 
 ## 16. Profile design
@@ -378,15 +380,15 @@ gated by `LiveSessionFeatureFlags.transportConfigured = false`.
 | Contactability shown up front, before a long message is written | `MemberProfileScreen` | `Contactability`, `SearchPeopleUseCase.contactability` | all | — | A dry run of the contact gate | `4. a member cannot obtain another person's wali contact details` (`CriticalFlowsTest`) | Implemented and tested |
 | Four profile image styles; photograph never required | `EditProfileScreen` | `ProfileImageStyle` | all | `profiles` | Downgraded to initials for a viewer who is not permitted the image | `a photograph is not shown to the opposite gender when set to same gender only` (`VisibilityPolicyTest`) | Implemented and tested |
 | Image upload and storage | `EditProfileScreen` | `Profile.imageUrl` | all | `profiles` | — | — | Not implemented *(a URL field with no upload path and no storage bucket)* |
-| Data export | `AccountDataScreen` | `AuditAction.DATA_EXPORTED` | all | — | — | — | Not implemented *(the screen and the audit action exist; nothing produces an export)* |
-| Deletion request | `AccountDataScreen` | `AccountStatus.DELETION_REQUESTED`, `AuditAction.DELETION_REQUESTED` | all | `profiles.status` | Content removed on the published schedule | — | Not implemented *(status and audit action exist; no use case sets them)* |
+| Data export | `AccountDataScreen` | `ExportMyDataUseCase` | all | `audit_logs` (`DATA_EXPORTED`) | States what it deliberately omits | `an export says what it contains and what it deliberately does not` | Implemented and tested |
+| Deletion request | `AccountDataScreen` | `RequestAccountDeletionUseCase` | all | `profiles.status` | States what survives and why; cancellable inside the grace period | `deletion is requested, states what survives, and can be cancelled` | Implemented and tested |
 
 ## 17. Security requirements
 
 | Feature | Screen | Component | Roles | Data entity | Permission / safeguard rule | Test | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Typed identifiers so one entity's id cannot be passed as another's | — | 26 `@JvmInline value class` ids (`core/model/.../Ids.kt`) | — | — | The compiler is the cheapest reviewer available | compile-time | Implemented and tested |
-| Authorisation decided in the use case and enforced again by RLS | — | `Principal`; 162 policies in `0013_row_level_security.sql` | all | every table | A repository is a store, not a gatekeeper | 99 assertions in `rls_tests.sql` | Implemented and tested |
+| Authorisation decided in the use case and enforced again by RLS | — | `Principal`; 162 policies in `0013_row_level_security.sql` | all | every table | A repository is a store, not a gatekeeper | 130 assertions in `rls_tests.sql` | Implemented and tested |
 | Never trusting client-supplied roles or verification | `OnboardingProfileScreen` | `CompleteOnboardingUseCase` overwrites both | all | `user_roles`, `user_verifications` | Sanitised in Kotlin, rejected again by trigger | `8. a member cannot give themselves verification or scholar status` (`CriticalFlowsTest`) | Implemented and tested |
 | Five append-only tables with UPDATE and DELETE revoked | — | RLS grants | all | `audit_logs`, `report_evidence`, `moderation_actions`, `message_redactions`, `wali_contact_disclosures` | Absolutely, including for administrators | `6b. audit records cannot be altered or removed through any interface` (`CriticalFlowsTest`) | Implemented and tested |
 | `FORCE ROW LEVEL SECURITY` on the sensitive tables | — | `0013_row_level_security.sql` | all | `user_safeguards`, `trusted_contacts`, `messages`, `reports`, … | The table owner is not exempt | RLS suite | Implemented and tested |
@@ -396,17 +398,18 @@ gated by `LiveSessionFeatureFlags.transportConfigured = false`.
 | No floating point anywhere near money | — | `Money(minorUnits: Long, currencyCode)` | all | `donations`, `campaigns` | Cannot be negative; currencies cannot be mixed | `every preset produces a usable set of safeguards` covers construction; `Money.init` throws | Implemented, untested |
 | Authentication | `SignInScreen`, `SignUpScreen`, `AccountRecoveryScreen` | `core:auth` (`AuthGateway`, `MemberSession`), `SessionManager` | all | `auth.users`, `public.register_member()`, `public.current_member()` | Sign-up, sign-in and recovery all refuse to reveal whether an address has an account | 26 tests in `core/auth`, 20 SQL assertions in sections 16–19 | Implemented and tested — see [`authentication.md`](authentication.md) |
 | Refresh token at rest | — | `KeystoreSessionStore` | all | — | AES-256-GCM under a hardware-backed key; the access token is never written to disk | Not unit-tested (Android keystore is not available off-device) | Implemented, untested |
-| Session and device management | — | `DeviceSession` | all | — | — | — | Not implemented |
+| Session and device management | `DeviceSessionsScreen` | `DeviceSessionUseCase` | all | `device_sessions` | End one, or end everything else | 3 assertions in `RecognitionTest` | Implemented and tested |
 | Transport security to a real backend | — | — | — | — | — | — | Not implemented *(the Android app talks to `InMemoryStore`; no network layer exists)* |
 
 ## 18. Screen inventory
 
 The product specification's §44 screen list is not a file in this repository, so this
 inventory is taken from `Routes.kt` — the codebase's own enumeration of screens — and
-cross-checked against the files under `ui/screens/`. All 48 declared routes have a
-`composable(...)` in `FiSabilillahNavHost.kt` and a matching `@Composable` function. Screens
-the product areas above imply but which no route declares are listed as **Not implemented**
-at the end.
+cross-checked against the files under `ui/screens/`. All **62** declared routes have a
+`composable(...)` in `FiSabilillahNavHost.kt` and a matching `@Composable` function; that
+correspondence is checked mechanically, not by eye, and one route (`REVIEW_APPEAL`) was
+deleted rather than listed, because nothing navigated to it. Screens the product areas
+above imply but which no route declares are listed as **Not implemented** at the end.
 
 | Screen | Route | File | Status |
 | --- | --- | --- | --- |
@@ -440,7 +443,18 @@ at the end.
 | Profile | `profile` | `profile/ProfileScreen.kt` | Implemented, untested |
 | Edit profile | `settings/profile` | `profile/EditProfileScreen.kt` | Implemented, untested |
 | Service history | `profile/history` | `profile/ServiceHistoryScreen.kt` | Implemented, untested |
-| Account data | `settings/account-data` | `profile/AccountDataScreen.kt` | Implemented, untested |
+| Account data — export and deletion | `settings/account-data` | `profile/AccountDataScreen.kt` | Implemented, untested |
+| Where you are signed in | `settings/devices` | `moderation/AdministrationScreens.kt` | Implemented, untested |
+| Your verification | `trust/verification` | `trust/TrustScreens.kt` | Implemented, untested |
+| Ask to be verified | `trust/verification/request` | `trust/TrustScreens.kt` | Implemented, untested |
+| Your qualifications | `trust/qualifications` | `trust/TrustScreens.kt` | Implemented, untested |
+| Trust review queue | `moderation/trust` | `trust/TrustScreens.kt` | Implemented, untested |
+| Your commitments | `commitments` | `profile/CommitmentScreens.kt` | Implemented, untested |
+| Say how it went | `commitments/endorse/{id}` | `profile/CommitmentScreens.kt` | Implemented, untested |
+| Teach a class | `create/class` | `create/AuthoringScreens.kt` | Implemented, untested |
+| Start a project | `create/project` | `create/AuthoringScreens.kt` | Implemented, untested |
+| Start a community | `create/community` | `create/AuthoringScreens.kt` | Implemented, untested |
+| Roles | `admin/roles` | `moderation/AdministrationScreens.kt` | Implemented, untested |
 | Safeguard settings | `settings/safeguards` | `safety/SafeguardSettingsScreen.kt` | Implemented, untested |
 | Privacy controls | `settings/privacy` | `safety/PrivacyControlsScreen.kt` | Implemented, untested |
 | Trusted contacts | `settings/trusted-contacts` | `safety/TrustedContactsScreen.kt` | Implemented, untested |
@@ -449,8 +463,11 @@ at the end.
 | Introduction detail | `introduction/{id}` | `safety/IntroductionDetailScreen.kt` | Implemented, untested |
 | Safety centre | `safety` | `safety/SafetyCentreScreen.kt` | Implemented, untested |
 | My reports | `safety/reports` | `safety/MyReportsScreen.kt` | Implemented, untested |
+| Your moderation record | `safety/restrictions` | `safety/AppealScreens.kt` | Implemented, untested |
+| Submit an appeal | `safety/appeal/{caseId}` | `safety/AppealScreens.kt` | Implemented, untested |
 | Report | `report/{targetType}/{targetId}` | `safety/ReportScreen.kt` | Implemented, untested |
 | Notifications | `notifications` | `safety/NotificationsScreen.kt` | Implemented, untested |
+| Appeal queue | `moderation/appeals` | `safety/AppealScreens.kt` | Implemented, untested |
 | Moderator dashboard | `moderation` | `moderation/ModeratorDashboardScreen.kt` | Implemented, untested |
 | Moderation case | `moderation/case/{id}` | `moderation/ModerationCaseScreen.kt` | Implemented, untested |
 | Admin dashboard | `admin` | `moderation/AdminDashboardScreen.kt` | Implemented, untested |
@@ -461,110 +478,87 @@ at the end.
 | **Live session lobby / room** | — | — | **Not implemented** |
 | **Schedule a live session** | — | — | **Not implemented** |
 | **Campaign list / detail / donate** | — | — | **Not implemented** |
-| **Create a learning offering** | — | — | **Not implemented** |
-| **Create a project / project task** | — | — | **Not implemented** |
-| **Submit an appeal** | — | — | **Not implemented** |
-| **Review an appeal** | — | — | **Not implemented** |
-| **Commitment check-in / check-out** | — | — | **Not implemented** |
-| **Qualification submission and review** | — | — | **Not implemented** |
-| **Verification upgrade** | — | — | **Not implemented** |
 | **People search** | — | — | **Not implemented** *(`SearchPeopleUseCase` and `PeopleViewModel` exist and are wired into `MEMBER_PROFILE`, but no route lists or searches people — deliberate, per the "no browse surface" principle, and worth recording as a decision rather than an omission)* |
 
 ---
 
 ## What is genuinely missing
 
-Every **Not implemented** row, in one place. Ordered by how much it matters if this ships.
+Everything the product specification describes is now implemented except the items below.
+Three of them are **deliberate deferrals** rather than gaps, and are marked as such — each
+one is a case where shipping the feature would be worse than not having it.
 
-| # | Missing | What it would take |
+| # | Missing | Why, and what it would take |
 | --- | --- | --- |
-| 1 | **The content layer still talks to `InMemoryStore`.** Authentication reaches Supabase; opportunities, requests, conversations and communities do not, so the 162 policies still guard nothing the app reads. | Supabase-backed implementations of the repository interfaces in `core/domain/.../Repositories.kt`. The ports were designed for this and should not need to change. `core:auth` already supplies the authenticated token every call will need. |
-| 2 | **Live-session transport, storage, tables, and screens.** | See the checklist in [`live-sessions.md`](live-sessions.md#the-checklist-before-that-flag-is-flipped). Seven items, of which the abuse-reporting path for live audio and the child-safety position are the two that cannot be engineered around. |
-| 3 | **Commitment check-in, check-out and organiser confirmation screens.** Commitments are the unit the platform says it cares about, and there is no way to complete one. | Routes and screens over `CommitmentUseCase`, which exists and is wired. Without them the trust labels in §12 can never be earned by a real member. |
-| 4 | **Nothing runs on a schedule.** Conversation auto-archiving writes a deadline nobody reads; `LapseIntroductionsUseCase` is never called. | A scheduled worker, on the server rather than the client, since neither should depend on a member opening the app. |
-| 5 | **Qualification submission and review, and any verification upgrade path.** A member's level reaches `basic` when they confirm their email address and never rises further in-app, which means every safeguard requiring `IDENTITY_VERIFIED` — including the whole introduction feature — is unreachable for a real user. | Identity provider integration, a submission screen, a reviewer screen, and use cases over `QualificationRepository`. |
-| 6 | **Creation paths for learning offerings, projects, project tasks, communities and campaigns.** All five are readable and none are creatable from the app. | Use cases and screens; the models and RLS policies already exist. |
-| 7 | **Task endorsements, safety incidents, fraud review, eligibility documents, device sessions, data export, deletion, image upload.** Each is a model type or a field with no path that reaches it. | Individually small; collectively about a third of the model surface that the app does not touch. |
-| 8 | **Role grant and revoke.** `app.grant_role(...)` exists in SQL; `AdminDashboardScreen` does not call it, and no Kotlin use case wraps it. | An admin use case and screen. Note that without it, no moderator can ever be appointed except by direct database access. |
-| 9 | **Age assurance and guardian consent for youth participation.** | Deliberately deferred; see [`child-safety.md`](child-safety.md). Recorded here so the deferral stays visible. |
-| 10 | **Payments.** | Deliberately deferred; see [`payment-compliance.md`](payment-compliance.md). |
-
-### Two rules that are weaker than they look
-
-Not missing, but not what a casual reader would assume.
-
-**The live one-to-one cross-gender oversight rule can be satisfied by declaration.**
-`LiveSessionPolicy.canJoin` accepts either an actually-present guardian or moderator
-(`guardianPresent`, `moderatorPresent`) *or* a `requiredOversight` set containing anything
-other than `RECORDED_FOR_SAFEGUARDING`. The second is a room configuration a host controls,
-not a person in the room. The test that covers the permitted case sets both at once, so it
-does not distinguish them. Either the presence check should be the only accepted proof, or
-the declaration branch should be documented as intentional.
-
-**`LiveParticipant.removedAt` is not honoured by the code that matters.**
-`LiveParticipant.isPresent` correctly accounts for `removedAt`, and nothing calls it.
-`LiveSession.activeParticipants` filters on `leftAt` alone, so a participant removed by a
-host or moderator still counts towards capacity, still counts towards
-`moderatorPresent` / `guardianPresent`, and still blocks recording consent. Removing someone
-from a room does not currently remove them from the room's arithmetic.
-
-**A third, smaller one.** `JoinLiveSessionUseCase` computes enrolment as *"does this person
-have any enrolment anywhere with status `ENROLLED`"* — it never compares the enrolment's
-`offeringId` with the session's subject. A student enrolled in any class can enter any
-class that requires enrolment. The policy-layer rule is correct and tested; the use case
-that feeds it is not, and has no test.
-
----
+| 1 | **The content layer still talks to `InMemoryStore`.** Authentication reaches Supabase; opportunities, requests, conversations, classes, projects and communities do not, so the 162 row-level security policies still guard nothing the app reads. | Supabase-backed implementations of the repository interfaces in `core/domain/.../Repositories.kt`. The ports were designed for this and do not need to change; `core:auth` already supplies the authenticated token every call will need. This is infrastructure work rather than product work, and it is the single largest remaining item. |
+| 2 | **Live-session media transport.** The domain model, the safeguard gating and the interface are complete and tested; no audio or video can be carried. | **Deliberate.** See the checklist in [`live-sessions.md`](live-sessions.md). Seven items, of which the abuse-reporting path for live audio and the legal position on recording per jurisdiction are the two that cannot be engineered around. `LiveSessionFeatureFlags.transportConfigured` stays false until they are answered. |
+| 3 | **Donations and payments.** Campaigns are readable; nothing takes money. | **Deliberate.** See [`payment-compliance.md`](payment-compliance.md). Taking donations needs a payment provider, charity-registration checks, and a position on zakat eligibility that is a scholarly question rather than an engineering one. |
+| 4 | **Youth participation and age assurance.** | **Deliberate.** See [`child-safety.md`](child-safety.md). It will not open until guardian consent, verified-organisation-only activities and background checks on the adults involved are all in place. Opening it sooner would put a feature ahead of children's safety. |
+| 5 | **Document and image upload.** Verification evidence, qualification documents and profile photographs are all stored as references with no upload path and no storage bucket. | A storage bucket with per-object policies, an upload path, and a decision about scanning. The reference plumbing is in place at both ends. |
+| 6 | **Nothing drives the scheduler.** `RunScheduledMaintenanceUseCase` exists, is tested and archives conversations and lapses introductions — but no cron, worker or edge function calls it. | A scheduled trigger in the deployment. Deliberately not the client: neither expiry should depend on a member opening the app. |
+| 7 | **Campaign creation and donation screens.** | Follows item 3. The models and RLS policies exist. |
+| 8 | **Organisation creation and verification.** Organisations are readable and are created only by the seed. | A use case and screens, plus a document-review path that follows item 5. |
+| 9 | **No people-browsing surface.** | **Deliberate**, per the "no browse surface" principle — `SearchPeopleUseCase` exists and is reachable only from a profile you already have a reason to open. Recorded as a decision rather than an omission. |
 
 ## What is claimed but unverified
 
-**The Android application has never been compiled successfully.** As of writing, a build
-engineer is working on it. That single fact qualifies every row in this matrix whose
-`Screen` column names a screen.
+**Nothing in the Android application has ever been run.** It compiles — GitHub Actions
+assembles a debug APK on every push to the branch, and that build is green — but compiling
+is the whole of the evidence. No test opens a screen, and no human has used the app. That
+single fact qualifies every row in this matrix whose `Screen` column names a screen.
 
 What this means precisely:
 
-- Every screen row in [§18](#18-screen-inventory) is marked **Implemented, untested**. That
-  is generous. A more exact reading is *"the source file exists and declares a `@Composable`
-  function with a plausible signature"*. Whether it compiles, renders, or is reachable is
+- Every screen row in [§18](#18-screen-inventory) is marked **Implemented, untested**. A
+  more exact reading is *"the file compiles and declares a `@Composable` the navigation
+  graph reaches"*. Whether it renders correctly, or behaves correctly when it does, is
   unknown.
 - The same qualification runs through every earlier section. Where a row's `Screen` column
   names a screen and its `Status` says **Implemented and tested**, the *test* is a JVM test
-  over `:core:policy` or `:core:data`. It proves the rule. It proves nothing about the
-  screen.
+  over `:core:policy`, `:core:data` or `:core:auth`. It proves the rule. It proves nothing
+  about the screen.
 - There are **no Android tests of any kind** — no unit tests, no Compose UI tests, no
-  instrumentation tests. `androidApp/app/src/test/java/org/fisabilillah/app/` exists as an
-  empty directory tree.
-- The wiring between screens and use cases is therefore entirely unverified. Every
-  `viewModel(factory = …)` call, every `collectAsState()`, every navigation argument parse
-  is untested and uncompiled.
+  instrumentation tests. `androidApp/app/src/test/java/org/fisabilillah/app/` is an empty
+  directory tree.
+- Every `viewModel(factory = …)` call, every `collectAsState()`, and every navigation
+  argument parse type-checks and is otherwise unverified.
+- **Authentication has never completed a real round trip from this repository.** `core:auth`
+  is tested against a fake transport, 26 tests, covering the wire format and the refresh
+  logic. The container this was built in cannot reach `*.supabase.co`, so no live sign-up,
+  no live sign-in, and no live token refresh has been observed. The server half is verified
+  the other way round — by SQL, against the live project and against a local PostgreSQL 16
+  cluster.
 
 What *is* verified:
 
-- The 186 JVM tests over `:core:policy` and `:core:data` pass, and were re-read from
-  `core/*/build/test-results/test/*.xml` for this document rather than taken on trust.
-- The 100 database assertions pass against PostgreSQL 16 via
-  `backend/supabase/run_local_tests.sh`.
-- Everything in `core/` compiles, because its tests run.
+- The 303 JVM tests over `:core:policy`, `:core:data` and `:core:auth` pass, and were read
+  from `core/*/build/test-results/test/*.xml` for this document rather than taken on trust.
+- The 130 database assertions pass against PostgreSQL 16 via
+  `backend/supabase/run_local_tests.sh`, with the full migration set applied to a throwaway
+  database.
+- All 18 migrations are applied to the live Supabase project, and its advisors report no
+  security findings beyond two pre-existing `extension_in_public` warnings for `citext` and
+  `pg_trgm`.
+- Everything in `core/` compiles, because its tests run. The Android module compiles,
+  because CI assembles it.
 
-One further caveat specific to §7. `core/domain/.../LiveSessionUseCases.kt` — which contains
-`LiveSessionRepository`, `LiveSessionTransport`, and the four live-session use cases — is
-**untracked in git** at the time of writing. It is not part of commit `a1a18dc`, which
-introduced the live-session model and policy. It has no tests, it is not referenced by
-`CoreGraph`, and its shape may change before it lands. Rows citing it are marked
-**Implemented, untested** on the strength of the file existing in the working tree, which is
-the weakest form of "implemented" in this document.
+One further caveat specific to §7. `core/domain/.../LiveSessionUseCases.kt` is tracked and
+compiles, but nothing constructs it: it is not referenced by `CoreGraph`, no repository in
+`:core:data` implements `LiveSessionRepository`, and no screen calls it. Rows citing it are
+**Model and UI only** for that reason and not merely for want of media transport.
 
 ### The specification's own condition
 
 > *"Do not begin visual polish until this matrix confirms that no original feature has been
 > lost."*
 
-This matrix does not confirm that. Forty rows are **Not implemented** — grouped into the
-fourteen items above — three enforced rules are weaker than they read, and the client that
-would present any of it has never been compiled. Items 1, 2 and 4 in [What is genuinely
-missing](#what-is-genuinely-missing) should be closed before anyone spends a day on
-spacing.
+This matrix now comes close to confirming it, and should not be read as confirming it. Of
+the sixteen **Not implemented** rows, twelve are decisions recorded as decisions —
+donations, youth participation, live-session media, people-browsing — and four are work
+that follows from them. The condition that actually blocks polish is item 1 in [What is
+genuinely missing](#what-is-genuinely-missing): the app reads from an in-memory store, so
+the 162 row-level security policies protect a database the client never opens. Polishing
+the spacing of a screen whose data layer is about to be replaced is work done twice.
 
 ---
 

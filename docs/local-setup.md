@@ -129,12 +129,13 @@ picked up immediately with nothing published. You will see `:core:model`, `:core
 ### Expect the first build to fail
 
 The Compose UI in this repository was authored in an environment where `dl.google.com` is
-blocked by egress policy. The Android SDK, AGP, and the AndroidX and Compose artifacts could
-not be downloaded, so **the Android module has never been compiled — not once.** The shared
-core and the database layer were both fully built and tested; the UI was not.
+blocked by egress policy, so it has never been compiled *locally* — every compile has
+happened on GitHub Actions, which can reach the Android SDK. That build is green, so the
+sources do compile; what nobody has done is *run* them. Expect runtime problems rather than
+compile errors.
 
-Anyone picking this up should plan for a session of fixing compile errors before anything
-renders. What to expect, in rough order of likelihood:
+If you are building locally for the first time and something does fail, this is the likely
+order:
 
 1. **Missing or wrong imports** in the Compose sources, particularly for Material 3 and
    `material-icons-extended` symbols.
@@ -152,9 +153,15 @@ mechanical work and do not be tempted to "fix" a compile error by moving a decis
 
 ### Signing in
 
-Authentication is a development stand-in. The sign-in screen lists the seeded accounts from
-`SessionManager.availableAccounts()`; choosing one sets the `Principal`. Useful accounts
-from `SeedData`:
+Authentication is real: the sign-in screen asks for an email address and a password and
+talks to Supabase Auth. To sign in you need an account on the project, which means signing
+up and confirming the email. Configuration comes from `SUPABASE_URL` and
+`SUPABASE_PUBLISHABLE_KEY` in `BuildConfig`, overridable with `-PsupabaseUrl=` and
+`-PsupabasePublishableKey=` or the same names in the environment. See
+[`authentication.md`](authentication.md).
+
+The seeded accounts below still exist in the in-memory fixture, which is what the app's
+*content* reads from, and they are what the `:core:data` tests are written against:
 
 | Account | Why it is interesting |
 | --- | --- |
@@ -166,7 +173,8 @@ from `SeedData`:
 | `user-moderator` | Sees the moderation area but cannot ban |
 | `user-safety-admin` | Can suspend, ban, and revoke verification |
 
-Nothing persists. Restarting the process reseeds from `SeedData`.
+Content does not persist: restarting the process reseeds from `SeedData`. Your session does
+— it is written to the keystore-backed store and restored on launch.
 
 ---
 
