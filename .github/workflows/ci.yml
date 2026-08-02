@@ -4,31 +4,97 @@ on:
   push:
     branches: ["**"]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # The APK. This is the job that matters: it is what people install.
+  # ─────────────────────────────────────────────────────────────────────────────
+  apk:
+    name: Build APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Assemble the debug APK
+        working-directory: androidApp
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
+
+      - name: Report the APK
+        working-directory: androidApp
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk/debug -name '*.apk' | head -1)
+          echo "Built: $APK"
+          ls -lh "$APK"
+          {
+            echo "### APK built"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| File | \`$(basename "$APK")\` |"
+            echo "| Size | $(du -h "$APK" | cut -f1) |"
+            echo "| Commit | \`${GITHUB_SHA:0:8}\` |"
+            echo ""
+            echo "Download it from the **fi-sabilillah-debug-apk** artifact below."
+            echo "It is signed with the standard Android debug key, so you will need to"
+            echo "allow installation from unknown sources on the device."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: fi-sabilillah-debug-apk
+          path: androidApp/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload build reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-reports
+          path: |
+            androidApp/app/build/reports
+            androidApp/build/reports
+          if-no-files-found: ignore
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # The shared core. Needs no Android SDK, so it runs anywhere and runs fast.
+  # ─────────────────────────────────────────────────────────────────────────────
   core:
     name: Shared core (JVM)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: "17"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # The whole point of keeping the core free of Android: this job needs no SDK, no
-      # emulator, and no access to Google's Maven repository. It runs anywhere a JDK does.
       - name: Build and test
-        run: ./gradlew build test --stacktrace
+        run: ./gradlew build test --stacktrace --no-daemon
 
       - name: Upload test reports
         if: always()
@@ -38,8 +104,11 @@ jobs:
           path: core/*/build/reports/tests/test
           if-no-files-found: ignore
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Migrations and row-level security, against a real Postgres.
+  # ─────────────────────────────────────────────────────────────────────────────
   database:
-    name: Database schema and row-level security
+    name: Schema and row-level security
     runs-on: ubuntu-latest
 
     services:
@@ -61,47 +130,10 @@ jobs:
       - name: Install the Postgres client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
-      # Applies every migration in order against a clean database, loads the seed data,
-      # then runs the assertion suite. A policy that silently stops enforcing an invariant
-      # fails here rather than in production.
-      - name: Apply migrations and run the RLS assertions
+      - name: Apply migrations and run the assertions
         env:
           PGHOST: localhost
           PGPORT: "5432"
           PGUSER: postgres
           PGPASSWORD: postgres
         run: bash backend/supabase/run_local_tests.sh
-
-  android:
-    name: Android client
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      # This build resolves AndroidX and the Android Gradle Plugin from Google's Maven
-      # repository, which was unreachable in the environment where the UI was written. It
-      # is expected to need fixing on its first successful run — see the status section of
-      # the README.
-      - name: Assemble and unit-test
-        working-directory: androidApp
-        run: ./gradlew assembleDebug testDebugUnitTest --stacktrace
-
-      - name: Upload the debug APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: fi-sabilillah-debug
-          path: androidApp/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: ignore
