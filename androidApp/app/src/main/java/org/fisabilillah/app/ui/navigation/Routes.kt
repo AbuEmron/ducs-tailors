@@ -1,10 +1,10 @@
 package org.fisabilillah.app.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Diversity3
 import androidx.compose.material.icons.outlined.Forum
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.VolunteerActivism
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -111,7 +111,7 @@ internal enum class PrimaryDestination(
 ) {
     HOME(Routes.HOME, "Home", Icons.Outlined.Home, "Home"),
     SERVE(Routes.SERVE, "Serve", Icons.Outlined.VolunteerActivism, "Volunteering opportunities"),
-    LEARN(Routes.LEARN, "Learn", Icons.Outlined.MenuBook, "Classes and study circles"),
+    LEARN(Routes.LEARN, "Learn", Icons.AutoMirrored.Outlined.MenuBook, "Classes and study circles"),
     REQUESTS(Routes.REQUESTS, "Requests", Icons.Outlined.Diversity3, "Requests for help"),
     MESSAGES(Routes.MESSAGES, "Messages", Icons.Outlined.Forum, "Your conversations"),
     PROFILE(Routes.PROFILE, "You", Icons.Outlined.Person, "Your profile and settings"),
