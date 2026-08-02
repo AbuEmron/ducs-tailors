@@ -82,7 +82,9 @@ import org.fisabilillah.core.model.RequestResponse
 import org.fisabilillah.core.model.RequestStatus
 import org.fisabilillah.core.model.Restriction
 import org.fisabilillah.core.model.RestrictionId
+import org.fisabilillah.core.model.RecordedSignal
 import org.fisabilillah.core.model.SafetyIncident
+import org.fisabilillah.core.model.SafetySignalId
 import org.fisabilillah.core.model.ServiceRequest
 import org.fisabilillah.core.model.Skill
 import org.fisabilillah.core.model.SkillId
@@ -149,6 +151,7 @@ public class InMemoryStore {
     public val moderationActions: MutableList<ModerationAction> = mutableListOf()
     public val appeals: MutableMap<AppealId, Appeal> = linkedMapOf()
     public val incidents: MutableList<SafetyIncident> = mutableListOf()
+    public val safetySignals: MutableList<RecordedSignal> = mutableListOf()
     public val auditLog: MutableList<AuditLogEntry> = mutableListOf()
     public val notifications: MutableList<Notification> = mutableListOf()
     public val consents: MutableList<ConsentRecord> = mutableListOf()
@@ -869,6 +872,37 @@ public class InMemoryModerationRepository(private val store: InMemoryStore) : Mo
             store.touch()
             incident
         }
+
+    override suspend fun recordSignals(signals: List<RecordedSignal>): Unit =
+        store.mutex.withLock {
+            store.safetySignals += signals
+            store.touch()
+        }
+
+    override suspend fun signalsBy(senderId: UserId, since: Timestamp): List<RecordedSignal> =
+        store.mutex.withLock {
+            store.safetySignals.filter { it.senderId == senderId && it.observedAt >= since }
+        }
+
+    override suspend fun attachSignalsToCase(
+        ids: List<SafetySignalId>,
+        caseId: ModerationCaseId,
+    ): Unit = store.mutex.withLock {
+        val wanted = ids.toSet()
+        for (index in store.safetySignals.indices) {
+            val signal = store.safetySignals[index]
+            // Never re-point a signal that already belongs to a case. A signal is evidence
+            // for the case that first rested on it, and moving it would quietly hollow out
+            // an earlier decision.
+            if (signal.id in wanted && signal.caseId == null) {
+                store.safetySignals[index] = signal.copy(caseId = caseId)
+            }
+        }
+        store.touch()
+    }
+
+    override suspend fun signalsForCase(caseId: ModerationCaseId): List<RecordedSignal> =
+        store.mutex.withLock { store.safetySignals.filter { it.caseId == caseId } }
 }
 
 /** Append-only, as the interface requires. No update, no delete, not even for administrators. */

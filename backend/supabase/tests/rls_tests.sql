@@ -973,4 +973,94 @@ $$;
 rollback;
 
 \echo ''
+\echo '### 20. Automated safety signals are moderator-only, and unforgeable'
+begin;
+set local role authenticated;
+-- amina, who sent message f8...0001 in the Arabic class thread.
+set local request.jwt.claim.sub = 'bbbbbbbb-0000-4000-8000-000000000001';
+do $$
+declare
+  v_written integer;
+begin
+  -- A member records signals for their own message. This is what the client
+  -- does after the on-device checks run.
+  v_written := public.record_message_signals(
+    'f8000000-0000-4000-8000-000000000001',
+    '[{"kind":"possible_off_platform_move","confidence":"medium",
+       "explanation":"The message mentions \"whatsapp\"."}]'::jsonb);
+  perform test.ok(v_written = 1, 'a member can record signals for their own message');
+
+  -- ...and cannot see them afterwards. Signals a sender can read are signals
+  -- a sender can reword their way around.
+  perform test.ok(
+    test.count_of($q$select 1 from public.message_safety_signals$q$) = 0,
+    'the sender cannot read the signals recorded against their own message');
+
+  perform test.denied($q$
+    select public.record_message_signals(
+      'f8000000-0000-4000-8000-000000000003',
+      '[{"kind":"possible_sexual_content","confidence":"high","explanation":"planted"}]'::jsonb)
+  $q$, 'a member cannot record signals against somebody else''s message');
+
+  perform test.denied($q$
+    insert into public.message_safety_signals
+           (message_id, conversation_id, sender_id, kind, confidence, explanation)
+    values ('f8000000-0000-4000-8000-000000000003','f7000000-0000-4000-8000-000000000003',
+            'cccccccc-0000-4000-8000-000000000002','possible_sexual_content','high','planted')
+  $q$, 'nor insert one directly, bypassing the function');
+end;
+$$;
+rollback;
+
+begin;
+-- Record one as amina, then look at it as the safety team.
+set local role authenticated;
+set local request.jwt.claim.sub = 'bbbbbbbb-0000-4000-8000-000000000001';
+do $$
+begin
+  perform public.record_message_signals(
+    'f8000000-0000-4000-8000-000000000001',
+    '[{"kind":"possible_flirtation","confidence":"medium","explanation":"contains \"beautiful\""}]'::jsonb);
+end;
+$$;
+
+set local request.jwt.claim.sub = 'aaaaaaaa-0000-4000-8000-000000000002';   -- bilal, moderator
+do $$
+begin
+  perform test.ok(
+    test.count_of($q$select 1 from public.message_safety_signals$q$) = 1,
+    'a moderator can read the signals');
+
+  perform test.ok(
+    test.scalar_text($q$select sender_id::text from public.message_safety_signals limit 1$q$)
+      = 'bbbbbbbb-0000-4000-8000-000000000001',
+    'and the sender is taken from the message, not from anything the caller passed');
+
+  perform test.ok(
+    test.count_of($q$select 1 from public.message_safety_signals where case_id is not null$q$) = 0,
+    'a fresh signal belongs to no case yet');
+
+  perform test.denied($q$
+    update public.message_safety_signals set explanation = 'something else'
+  $q$, 'not even a moderator may edit a recorded signal');
+
+  perform test.denied($q$delete from public.message_safety_signals$q$,
+    'nor delete one');
+end;
+$$;
+rollback;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = 'cccccccc-0000-4000-8000-000000000004';   -- ibrahim, ordinary member
+do $$
+begin
+  perform test.ok(
+    test.count_of($q$select 1 from public.message_safety_signals$q$) = 0,
+    'an unrelated member sees no signals at all');
+end;
+$$;
+rollback;
+
+\echo ''
 \echo '### all assertions completed'

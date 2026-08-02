@@ -2,6 +2,8 @@ package org.fisabilillah.core.domain
 
 import kotlinx.coroutines.flow.Flow
 import org.fisabilillah.core.model.Appeal
+import org.fisabilillah.core.model.RecordedSignal
+import org.fisabilillah.core.model.SafetySignalId
 import org.fisabilillah.core.model.AppealId
 import org.fisabilillah.core.model.AuditLogEntry
 import org.fisabilillah.core.model.Block
@@ -250,6 +252,26 @@ public interface ModerationRepository {
     public suspend fun openAppeals(): List<Appeal>
 
     public suspend fun saveIncident(incident: SafetyIncident): SafetyIncident
+
+    // ── Automated signals ──────────────────────────────────────────────────────
+    // Stored so that a pattern can be seen across messages; see SignalEscalationPolicy.
+
+    public suspend fun recordSignals(signals: List<RecordedSignal>)
+
+    /**
+     * Signals attributed to one sender since [since].
+     *
+     * Sender-scoped rather than conversation-scoped on purpose: the thing worth detecting
+     * is one person doing the same thing to several people, and a query that can only see
+     * inside a single thread is blind to exactly that.
+     */
+    public suspend fun signalsBy(senderId: UserId, since: Timestamp): List<RecordedSignal>
+
+    /** Marks signals as having contributed to a case, so they are not counted twice. */
+    public suspend fun attachSignalsToCase(ids: List<SafetySignalId>, caseId: ModerationCaseId)
+
+    /** For the moderator's view of a case: what the automated checks actually saw. */
+    public suspend fun signalsForCase(caseId: ModerationCaseId): List<RecordedSignal>
 }
 
 /** Append-only by contract. Implementations must not expose an update or delete path. */

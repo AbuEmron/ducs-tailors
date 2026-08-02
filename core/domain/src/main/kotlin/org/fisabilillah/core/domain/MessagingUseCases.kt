@@ -21,7 +21,12 @@ import org.fisabilillah.core.model.NotificationId
 import org.fisabilillah.core.model.NotificationKind
 import org.fisabilillah.core.model.OrganizationId
 import org.fisabilillah.core.model.PurposeSubject
+import org.fisabilillah.core.model.CaseState
+import org.fisabilillah.core.model.ModerationCase
+import org.fisabilillah.core.model.ModerationCaseId
+import org.fisabilillah.core.model.RecordedSignal
 import org.fisabilillah.core.model.SafetySignal
+import org.fisabilillah.core.model.SafetySignalId
 import org.fisabilillah.core.model.UserId
 import org.fisabilillah.core.policy.ContactDecision
 import org.fisabilillah.core.policy.ContactPolicy
@@ -30,6 +35,7 @@ import org.fisabilillah.core.policy.MessageDecision
 import org.fisabilillah.core.policy.ModerationPolicy
 import org.fisabilillah.core.policy.OversightRequirement
 import org.fisabilillah.core.policy.PurposeValidator
+import org.fisabilillah.core.policy.SignalEscalationPolicy
 import org.fisabilillah.core.policy.UnsendDecision
 import org.fisabilillah.core.policy.ValidationResult
 import kotlin.time.Duration.Companion.days
@@ -313,6 +319,15 @@ public data class SentMessage(
     val message: Message,
     val signals: List<SafetySignal>,
     val driftReminderPosted: Boolean,
+    /**
+     * Set when this message's signals, together with what came before, were enough to open
+     * a case in the safety queue.
+     *
+     * Present for the caller's logs and tests, **not** for the interface. Nothing in the
+     * app tells the sender that a case was raised: see [SignalEscalationPolicy] for why
+     * turning detection into feedback would teach the people it exists for how to avoid it.
+     */
+    val raisedCaseId: ModerationCaseId? = null,
 )
 
 /** Adds a message to an existing thread. */
@@ -323,6 +338,7 @@ public class SendMessageUseCase(
     private val blocks: BlockRepository,
     private val restrictions: RestrictionRepository,
     private val notifications: NotificationRepository,
+    private val moderation: ModerationRepository,
     private val ids: IdGenerator,
     private val clock: AppClock,
 ) {
@@ -422,7 +438,77 @@ public class SendMessageUseCase(
             )
         }
 
-        return Outcome.Success(SentMessage(message, signals, driftPosted))
+        val raisedCase = persistAndEscalate(sender.id, message, signals, now)
+
+        return Outcome.Success(SentMessage(message, signals, driftPosted, raisedCase))
+    }
+
+    /**
+     * Keep the signals, and open a case if what has accumulated warrants one.
+     *
+     * Storing happens whether or not anything escalates. That is the point: a single
+     * "beautiful" is not a case, and it is also not nothing — it is the first of the three
+     * that will be, and a check whose output is discarded the moment it is computed cannot
+     * ever see the third.
+     *
+     * The escalation itself never touches the account. It writes a case into the queue and
+     * stops. Every consequence on this platform is applied by a named moderator, recorded
+     * in the append-only log, and appealable.
+     */
+    private suspend fun persistAndEscalate(
+        senderId: UserId,
+        message: Message,
+        signals: List<SafetySignal>,
+        now: org.fisabilillah.core.model.Timestamp,
+    ): ModerationCaseId? {
+        if (signals.isEmpty()) return null
+
+        val recorded = signals.map { signal ->
+            RecordedSignal(
+                id = SafetySignalId(ids.newId()),
+                messageId = message.id,
+                conversationId = message.conversationId,
+                senderId = senderId,
+                signal = signal,
+                observedAt = now,
+            )
+        }
+        moderation.recordSignals(recorded)
+
+        val history = moderation.signalsBy(senderId, now - SignalEscalationPolicy.WINDOW)
+        val escalation = SignalEscalationPolicy.assess(history, now)
+        if (escalation !is SignalEscalationPolicy.Escalation.RaiseCase) return null
+
+        // One open automated case per person at a time. Without this, every further
+        // message from someone already in the queue opens another case about the same
+        // behaviour, and the effect on a moderator's screen is that the loudest problem
+        // hides the other nineteen.
+        val existing = moderation.openCases().items.firstOrNull {
+            it.subjectUserId == senderId && it.reportIds.isEmpty() && it.state != CaseState.CLOSED
+        }
+        if (existing != null) {
+            moderation.attachSignalsToCase(escalation.basis.map { it.id }, existing.id)
+            return existing.id
+        }
+
+        val case = moderation.saveCase(
+            ModerationCase(
+                id = ModerationCaseId(ids.newId()),
+                subjectUserId = senderId,
+                // Empty: nobody reported this. A case with no reporter is how a moderator
+                // tells an automated concern from a person asking for help, and the two
+                // should not be read the same way.
+                reportIds = emptyList(),
+                category = escalation.category,
+                severity = escalation.severity,
+                state = CaseState.OPEN,
+                summary = escalation.summary,
+                createdAt = now,
+                updatedAt = now,
+            ),
+        )
+        moderation.attachSignalsToCase(escalation.basis.map { it.id }, case.id)
+        return case.id
     }
 }
 

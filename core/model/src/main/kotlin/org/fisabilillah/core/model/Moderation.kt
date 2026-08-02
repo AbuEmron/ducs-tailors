@@ -381,6 +381,18 @@ public data class SafetySignal(
 public enum class SafetySignalKind(public val displayName: String) {
     POSSIBLE_FLIRTATION("Possible flirtation"),
     POSSIBLE_SEXUAL_CONTENT("Possible sexual content"),
+
+    /**
+     * Phrases that work to cut someone off from the people around them -- "our secret",
+     * "delete this chat", "your parents don't need to know".
+     *
+     * Separate from [POSSIBLE_FLIRTATION], which is where these used to land. Under that
+     * label a grooming pattern arrived in the safety queue looking like clumsy romantic
+     * interest, which is the wrong thing for a moderator to read first and the wrong
+     * category to route by: isolation of a person from their family is the shape of
+     * grooming and of coercive control, and neither is flirtation.
+     */
+    POSSIBLE_ISOLATION_ATTEMPT("Attempt to isolate someone"),
     POSSIBLE_CONTACT_DETAIL_SHARING("Contact details being shared"),
     POSSIBLE_OFF_PLATFORM_MOVE("Attempt to move off the platform"),
     POSSIBLE_FINANCIAL_SOLICITATION("Money being requested"),
@@ -390,11 +402,39 @@ public enum class SafetySignalKind(public val displayName: String) {
 }
 
 @Serializable
-public enum class SignalConfidence(public val displayName: String) {
-    LOW("Low"),
-    MEDIUM("Medium"),
-    HIGH("High"),
+public enum class SignalConfidence(public val displayName: String, public val rank: Int) {
+    LOW("Low", 0),
+    MEDIUM("Medium", 1),
+    HIGH("High", 2),
 }
+
+/**
+ * A signal that actually happened, kept.
+ *
+ * [SafetySignal] is the output of a check; this is the record that the check fired, on a
+ * particular message, sent by a particular person, at a particular time. The distinction
+ * matters because almost nothing here is decidable from one message: "beautiful" once is
+ * noise, and "beautiful" to eleven different sisters in a week is a pattern, and only a
+ * stored history can tell them apart.
+ *
+ * Kept narrow on purpose. The message body is **not** copied in — the signal names the
+ * message and carries the phrase that matched, and a moderator who needs the surrounding
+ * conversation opens the case and reads it there, which is a step that gets audited. A
+ * table holding a copy of every flagged private message would be a second, quieter store
+ * of exactly the material the platform is most careful about.
+ */
+@Serializable
+public data class RecordedSignal(
+    val id: SafetySignalId,
+    val messageId: MessageId,
+    val conversationId: ConversationId,
+    /** Who sent the message the signal fired on. Never the recipient. */
+    val senderId: UserId,
+    val signal: SafetySignal,
+    /** Set once the signal has contributed to a case, so it is not counted twice. */
+    val caseId: ModerationCaseId? = null,
+    val observedAt: Timestamp,
+)
 
 /**
  * Capabilities that can be withdrawn, extended for live rooms.

@@ -103,7 +103,7 @@ public object ContentSignals {
         }
         matched(text, GROOMING_TERMS)?.let {
             signals += SafetySignal(
-                kind = SafetySignalKind.POSSIBLE_FLIRTATION,
+                kind = SafetySignalKind.POSSIBLE_ISOLATION_ATTEMPT,
                 confidence = SignalConfidence.HIGH,
                 explanation = "The message contains \"$it\", a phrase associated with " +
                     "isolating someone from the people around them.",

@@ -242,7 +242,8 @@ public class CoreGraph(
         assembler, oversight, subjectTitles, ids, clock,
     )
     public val sendMessage: SendMessageUseCase = SendMessageUseCase(
-        profiles, conversations, messages, blocks, restrictions, notifications, ids, clock,
+        profiles, conversations, messages, blocks, restrictions, notifications, moderation,
+        ids, clock,
     )
     public val unsendMessage: UnsendMessageUseCase =
         UnsendMessageUseCase(messages, auditLog, ids, clock)
