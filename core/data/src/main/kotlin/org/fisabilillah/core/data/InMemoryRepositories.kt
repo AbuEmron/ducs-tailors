@@ -175,6 +175,9 @@ public class InMemoryStore {
 public class InMemoryProfileRepository(private val store: InMemoryStore) : ProfileRepository {
     override suspend fun find(id: UserId): Profile? = store.mutex.withLock { store.profiles[id] }
 
+    override suspend fun all(): List<Profile> =
+        store.mutex.withLock { store.profiles.values.toList() }
+
     override suspend fun findAll(ids: Collection<UserId>): List<Profile> =
         store.mutex.withLock { ids.mapNotNull { store.profiles[it] } }
 
@@ -359,6 +362,16 @@ public class InMemoryConversationRepository(private val store: InMemoryStore) :
             store.conversations.values.filter { conversation ->
                 val ids = conversation.members.map { it.userId }.toSet()
                 a in ids && b in ids
+            }
+        }
+
+    override suspend fun needingArchive(now: Timestamp): List<Conversation> =
+        store.mutex.withLock {
+            store.conversations.values.filter { conversation ->
+                conversation.archiveAfter != null &&
+                    conversation.archiveAfter!! <= now &&
+                    conversation.state != ConversationState.ARCHIVED &&
+                    conversation.state != ConversationState.ENDED
             }
         }
 

@@ -76,6 +76,16 @@ import org.fisabilillah.core.model.VolunteerOpportunity
 public interface ProfileRepository {
     public suspend fun find(id: UserId): Profile?
     public suspend fun findAll(ids: Collection<UserId>): List<Profile>
+
+    /**
+     * Every profile.
+     *
+     * Only two callers, and both are the platform acting on itself rather than a member
+     * looking at other members: the staff list, and scheduled maintenance which has to
+     * sweep everybody. Anything a *member* sees goes through [search], which filters by
+     * what that member is entitled to see.
+     */
+    public suspend fun all(): List<Profile>
     public suspend fun save(profile: Profile): Profile
     public fun observe(id: UserId): Flow<Profile?>
 
@@ -125,6 +135,15 @@ public interface ConversationRepository {
      * counted rather than inferred from message history at read time.
      */
     public suspend fun countDeclinedApproaches(initiator: UserId, recipient: UserId): Int
+
+    /**
+     * Conversations whose auto-archive deadline has passed.
+     *
+     * The deadline has been written on every conversation since the first release and read
+     * by nothing. A promise the interface makes to somebody who is not looking is still a
+     * promise.
+     */
+    public suspend fun needingArchive(now: Timestamp): List<Conversation>
 }
 
 public interface MessageRepository {

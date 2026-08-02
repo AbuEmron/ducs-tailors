@@ -26,6 +26,15 @@ import org.fisabilillah.core.domain.LapseIntroductionsUseCase
 import org.fisabilillah.core.domain.ListConversationsUseCase
 import org.fisabilillah.core.domain.ManageTrustedContactsUseCase
 import org.fisabilillah.core.domain.AppealQueueUseCase
+import org.fisabilillah.core.domain.CommunityMembershipUseCase
+import org.fisabilillah.core.domain.CreateCommunityUseCase
+import org.fisabilillah.core.domain.CreateLearningOfferingUseCase
+import org.fisabilillah.core.domain.CreateProjectUseCase
+import org.fisabilillah.core.domain.ExportMyDataUseCase
+import org.fisabilillah.core.domain.ManageRolesUseCase
+import org.fisabilillah.core.domain.ProjectTaskUseCase
+import org.fisabilillah.core.domain.RequestAccountDeletionUseCase
+import org.fisabilillah.core.domain.RunScheduledMaintenanceUseCase
 import org.fisabilillah.core.domain.DecideVerificationUseCase
 import org.fisabilillah.core.domain.MyVerificationUseCase
 import org.fisabilillah.core.domain.RequestVerificationUseCase
@@ -305,6 +314,28 @@ public class CoreGraph(
     public val myModerationRecord: MyModerationRecordUseCase =
         MyModerationRecordUseCase(restrictions, moderation, clock)
     public val appealQueue: AppealQueueUseCase = AppealQueueUseCase(moderation)
+
+    public val createLearningOffering: CreateLearningOfferingUseCase =
+        CreateLearningOfferingUseCase(learning, profiles, auditLog, ids, clock)
+    public val createProject: CreateProjectUseCase = CreateProjectUseCase(projects, ids, clock)
+    public val projectTasks: ProjectTaskUseCase =
+        ProjectTaskUseCase(projects, notifications, ids, clock)
+    public val createCommunity: CreateCommunityUseCase =
+        CreateCommunityUseCase(communities, profiles, auditLog, ids, clock)
+    public val communityMembership: CommunityMembershipUseCase =
+        CommunityMembershipUseCase(communities, profiles, notifications, ids, clock)
+
+    public val manageRoles: ManageRolesUseCase =
+        ManageRolesUseCase(profiles, notifications, auditLog, ids, clock)
+    public val scheduledMaintenance: RunScheduledMaintenanceUseCase =
+        RunScheduledMaintenanceUseCase(conversations, profiles, lapseIntroductions, auditLog, ids, clock)
+
+    public val exportMyData: ExportMyDataUseCase = ExportMyDataUseCase(
+        profiles, safeguards, conversations, messages, commitments, consents,
+        trustedContacts, auditLog, ids, clock,
+    )
+    public val requestAccountDeletion: RequestAccountDeletionUseCase =
+        RequestAccountDeletionUseCase(profiles, auditLog, ids, clock)
 
     public val requestVerification: RequestVerificationUseCase =
         RequestVerificationUseCase(verifications, profiles, auditLog, ids, clock)
