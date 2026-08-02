@@ -34,6 +34,7 @@ import org.fisabilillah.core.policy.ContentSignals
 @Composable
 internal fun SafetyCentreScreen(
     onMyReports: () -> Unit,
+    onMyRestrictions: () -> Unit,
     onGuidelines: () -> Unit,
     onPrivacyControls: () -> Unit,
     onBack: () -> Unit,
@@ -97,6 +98,16 @@ internal fun SafetyCentreScreen(
                 description = "What you have reported, and what you will and will not be " +
                     "told about the outcome.",
                 onClick = onMyReports,
+            )
+
+            // Reachable without being invited. The alternative -- offering the appeal route
+            // only in the notification announcing a restriction -- leaves anyone who was
+            // asleep, or who cleared it, with no way in at all.
+            NavCard(
+                title = "Restrictions on your account, and appeals",
+                description = "Anything the safety team has limited, the reason they gave, " +
+                    "and how to argue with it.",
+                onClick = onMyRestrictions,
             )
 
             NavCard(

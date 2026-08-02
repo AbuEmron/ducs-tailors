@@ -57,7 +57,10 @@ import org.fisabilillah.app.ui.screens.requests.CreateRequestScreen
 import org.fisabilillah.app.ui.screens.requests.RequestDetailScreen
 import org.fisabilillah.app.ui.screens.requests.RequestsScreen
 import org.fisabilillah.app.ui.screens.safety.IntroductionDetailScreen
+import org.fisabilillah.app.ui.screens.safety.AppealQueueScreen
 import org.fisabilillah.app.ui.screens.safety.MyReportsScreen
+import org.fisabilillah.app.ui.screens.safety.MyRestrictionsScreen
+import org.fisabilillah.app.ui.screens.safety.SubmitAppealScreen
 import org.fisabilillah.app.ui.screens.safety.NotificationsScreen
 import org.fisabilillah.app.ui.screens.safety.PrivacyControlsScreen
 import org.fisabilillah.app.ui.screens.safety.ReportScreen
@@ -75,7 +78,9 @@ import org.fisabilillah.app.ui.viewmodel.CommunityViewModel
 import org.fisabilillah.app.ui.viewmodel.HomeViewModel
 import org.fisabilillah.app.ui.viewmodel.LearnViewModel
 import org.fisabilillah.app.ui.viewmodel.MessagesViewModel
+import org.fisabilillah.app.ui.viewmodel.AppealQueueViewModel
 import org.fisabilillah.app.ui.viewmodel.ModerationViewModel
+import org.fisabilillah.app.ui.viewmodel.MyModerationRecordViewModel
 import org.fisabilillah.app.ui.viewmodel.NotificationsViewModel
 import org.fisabilillah.app.ui.viewmodel.PeopleViewModel
 import org.fisabilillah.app.ui.viewmodel.ProfileViewModel
@@ -900,6 +905,7 @@ internal fun FiSabilillahNavHost(
         composable(Routes.SAFETY_CENTRE) {
             SafetyCentreScreen(
                 onMyReports = { navController.navigate(Routes.MY_REPORTS) },
+                onMyRestrictions = { navController.navigate(Routes.MY_RESTRICTIONS) },
                 onGuidelines = { navController.navigate(Routes.COMMUNITY_GUIDELINES) },
                 onPrivacyControls = { navController.navigate(Routes.PRIVACY_CONTROLS) },
                 onBack = { navController.popBackStack() },
@@ -908,6 +914,49 @@ internal fun FiSabilillahNavHost(
 
         composable(Routes.MY_REPORTS) {
             MyReportsScreen(onBack = { navController.popBackStack() })
+        }
+
+        composable(Routes.MY_RESTRICTIONS) {
+            val viewModel: MyModerationRecordViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> MyModerationRecordViewModel(g, p) },
+            )
+            val state by viewModel.state.collectAsState()
+
+            MyRestrictionsScreen(
+                records = state.data.orEmpty(),
+                loading = state.loading,
+                refusal = state.refusal,
+                onAppeal = { caseId -> navController.navigate(Routes.submitAppeal(caseId.value)) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.SUBMIT_APPEAL) { entry ->
+            val caseId = ModerationCaseId(entry.arguments?.getString("caseId").orEmpty())
+            val viewModel: MyModerationRecordViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> MyModerationRecordViewModel(g, p) },
+            )
+            val state by viewModel.state.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+            var error by remember { mutableStateOf<String?>(null) }
+
+            val summary = state.data
+                ?.firstOrNull { it.case?.id == caseId }
+                ?.case
+                ?.summary
+
+            SubmitAppealScreen(
+                caseSummary = summary,
+                submitting = submitting,
+                error = error,
+                onSubmit = { statement ->
+                    viewModel.appeal(caseId, statement) { message ->
+                        error = message
+                        if (message == null) navController.popBackStack()
+                    }
+                },
+                onBack = { navController.popBackStack() },
+            )
         }
 
         composable(Routes.REPORT) { entry ->
@@ -946,6 +995,26 @@ internal fun FiSabilillahNavHost(
         }
 
         // ── Moderation ────────────────────────────────────────────────────────
+        composable(Routes.APPEAL_QUEUE) {
+            val viewModel: AppealQueueViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> AppealQueueViewModel(g, p) },
+            )
+            val state by viewModel.state.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+            var error by remember { mutableStateOf<String?>(null) }
+
+            AppealQueueScreen(
+                items = state.data.orEmpty(),
+                loading = state.loading,
+                refusal = error ?: state.refusal,
+                submitting = submitting,
+                onDecide = { appealId, decision, note ->
+                    viewModel.decide(appealId, decision, note) { message -> error = message }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
         composable(Routes.MODERATOR_DASHBOARD) {
             val viewModel: ModerationViewModel = viewModel(
                 factory = viewModelFactory(graph) { g, p -> ModerationViewModel(g, p) },
@@ -958,6 +1027,7 @@ internal fun FiSabilillahNavHost(
                 auditTrail = auditTrail,
                 isSafetyAdmin = principal?.isSafetyAdmin == true,
                 onOpenCase = { navController.navigate(Routes.moderationCase(it.value)) },
+                onAppeals = { navController.navigate(Routes.APPEAL_QUEUE) },
                 onBack = { navController.popBackStack() },
             )
         }

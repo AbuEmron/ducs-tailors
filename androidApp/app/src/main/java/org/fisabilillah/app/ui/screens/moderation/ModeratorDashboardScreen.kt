@@ -26,6 +26,7 @@ import org.fisabilillah.app.ui.components.EmptyState
 import org.fisabilillah.app.ui.components.FactChip
 import org.fisabilillah.app.ui.components.LoadingState
 import org.fisabilillah.app.ui.components.RefusalNotice
+import org.fisabilillah.app.ui.components.SecondaryButton
 import org.fisabilillah.app.ui.components.SectionHeader
 import org.fisabilillah.app.ui.theme.FiSabilillahTheme
 import org.fisabilillah.app.ui.viewmodel.ScreenState
@@ -53,6 +54,7 @@ internal fun ModeratorDashboardScreen(
     auditTrail: List<AuditLogEntry>,
     isSafetyAdmin: Boolean,
     onOpenCase: (ModerationCaseId) -> Unit,
+    onAppeals: () -> Unit,
     onBack: () -> Unit,
 ) {
     val spacing = FiSabilillahTheme.spacing
@@ -88,6 +90,18 @@ internal fun ModeratorDashboardScreen(
                         "their access leaves a trail they cannot clean up. That is " +
                         "deliberate, and it protects members from us.",
                 )
+            }
+
+            item {
+                // Appeals sit alongside the queue rather than inside it. They are the one
+                // part of this screen where a member is arguing back, and burying them
+                // under the open cases would mean the busiest moderator never sees them.
+                SecondaryButton(
+                    text = "Appeals waiting to be read",
+                    onClick = onAppeals,
+                    modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
+                )
+                Spacer(Modifier.height(spacing.sm))
             }
 
             when {

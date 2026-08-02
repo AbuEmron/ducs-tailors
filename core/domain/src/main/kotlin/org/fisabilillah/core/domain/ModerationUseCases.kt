@@ -347,6 +347,92 @@ public class TakeModerationActionUseCase(
  * against is worse than none at all: it produces a record that says the decision was
  * reviewed.
  */
+/**
+ * What was done to me, and can I argue with it.
+ *
+ * Every restriction on this platform is appealable, and until this existed there was no
+ * way for a member to find out what they were appealing: the restriction is applied by a
+ * moderator, notified once, and after that lived only in a table the member cannot read.
+ * A right of appeal nobody can reach is not a right of appeal.
+ *
+ * What comes back is deliberately complete. The reason recorded by the moderator is
+ * included verbatim, because a person told only that they are "restricted from starting
+ * conversations" cannot form an argument, and the appeal that follows would be a guess.
+ */
+public class MyModerationRecordUseCase(
+    private val restrictions: RestrictionRepository,
+    private val moderation: ModerationRepository,
+    private val clock: AppClock,
+) {
+
+    public data class RestrictionRecord(
+        val restriction: Restriction,
+        /** The case it came from, when there is one. */
+        val case: ModerationCase?,
+        /** An appeal already lodged against that case, if any. */
+        val appeal: Appeal?,
+    ) {
+        /**
+         * One appeal per case. A member who has already appealed is shown the state of
+         * that appeal rather than an empty form, and cannot lodge a second one while the
+         * first is being read.
+         */
+        public val canAppeal: Boolean
+            get() = case != null &&
+                (appeal == null || appeal.state == AppealState.WITHDRAWN)
+    }
+
+    public suspend operator fun invoke(principal: Principal): Outcome<List<RestrictionRecord>> {
+        val now = clock.now()
+        val active = restrictions.activeFor(principal.userId, now)
+
+        val records = active.map { restriction ->
+            val case = restriction.caseId?.let { moderation.findCase(it) }
+            val appeal = restriction.caseId
+                ?.let { moderation.appealsFor(it) }
+                ?.firstOrNull { it.appellantId == principal.userId }
+            RestrictionRecord(restriction, case, appeal)
+        }
+        return Outcome.Success(records)
+    }
+}
+
+/** Appeals waiting for the safety team. */
+public class AppealQueueUseCase(
+    private val moderation: ModerationRepository,
+) {
+    public data class QueueItem(
+        val appeal: Appeal,
+        val case: ModerationCase?,
+        /**
+         * False when this reviewer took the original action. The refusal is enforced in
+         * [ReviewAppealUseCase.decide]; surfacing it here means the interface can say why
+         * rather than offering a button that will be refused.
+         */
+        val reviewableByMe: Boolean,
+    )
+
+    public suspend operator fun invoke(principal: Principal): Outcome<List<QueueItem>> {
+        if (!principal.isModerator) {
+            return Outcome.refused("Only the safety team can see appeals.")
+        }
+        val items = moderation.openAppeals().map { appeal ->
+            val actions = moderation.actionsFor(appeal.caseId)
+            QueueItem(
+                appeal = appeal,
+                case = moderation.findCase(appeal.caseId),
+                reviewableByMe = ModerationPolicy.canReviewAppeal(
+                    appeal = appeal,
+                    reviewerId = principal.userId,
+                    reviewerRoles = principal.roles,
+                    originalActions = actions,
+                ) == AppealReviewDecision.Permitted,
+            )
+        }.sortedBy { it.appeal.createdAt }
+        return Outcome.Success(items)
+    }
+}
+
 public class ReviewAppealUseCase(
     private val moderation: ModerationRepository,
     private val restrictions: RestrictionRepository,

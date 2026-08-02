@@ -12,6 +12,8 @@ import org.fisabilillah.core.domain.HomeDigest
 import org.fisabilillah.core.domain.IntroductionDecisionAction
 import org.fisabilillah.core.domain.LearningSearchCriteria
 import org.fisabilillah.core.domain.OpportunitySearchCriteria
+import org.fisabilillah.core.domain.AppealQueueUseCase
+import org.fisabilillah.core.domain.MyModerationRecordUseCase
 import org.fisabilillah.core.domain.Outcome
 import org.fisabilillah.core.domain.PeopleSearchCriteria
 import org.fisabilillah.core.domain.Principal
@@ -886,6 +888,105 @@ internal class ReportViewModel(
                     it.copy(submitting = false, refusal = "That could not be reported.")
                 }
             }
+        }
+    }
+}
+
+/**
+ * What the platform has done to this member, and their right to argue with it.
+ *
+ * Deliberately a screen a member can reach without being invited to. The alternative --
+ * showing the appeal route only in the notification that announced the restriction -- means
+ * that the person who was asleep, or who cleared the notification, or who came back a week
+ * later, has no way in at all.
+ */
+internal class MyModerationRecordViewModel(
+    private val graph: AppGraph,
+    private val principal: Principal,
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(
+        ScreenState<List<MyModerationRecordUseCase.RestrictionRecord>>(),
+    )
+    val state: StateFlow<ScreenState<List<MyModerationRecordUseCase.RestrictionRecord>>> =
+        _state.asStateFlow()
+
+    private val _submitting = MutableStateFlow(false)
+    val submitting: StateFlow<Boolean> = _submitting.asStateFlow()
+
+    init {
+        refresh()
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _state.value = graph.core.myModerationRecord(principal).toScreenState()
+        }
+    }
+
+    fun appeal(
+        caseId: org.fisabilillah.core.model.ModerationCaseId,
+        statement: String,
+        onResult: (String?) -> Unit,
+    ) {
+        viewModelScope.launch {
+            _submitting.value = true
+            val outcome = graph.core.reviewAppeal.submit(principal, caseId, statement)
+            _submitting.value = false
+            refresh()
+            onResult(
+                when (outcome) {
+                    is Outcome.Success -> null
+                    is Outcome.Refused -> outcome.message
+                    is Outcome.Invalid -> outcome.errors.first().message
+                    is Outcome.NotFound -> "We could not find ${outcome.what}."
+                },
+            )
+        }
+    }
+}
+
+/** The safety team's side: appeals waiting to be read. */
+internal class AppealQueueViewModel(
+    private val graph: AppGraph,
+    private val principal: Principal,
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(ScreenState<List<AppealQueueUseCase.QueueItem>>())
+    val state: StateFlow<ScreenState<List<AppealQueueUseCase.QueueItem>>> = _state.asStateFlow()
+
+    private val _submitting = MutableStateFlow(false)
+    val submitting: StateFlow<Boolean> = _submitting.asStateFlow()
+
+    init {
+        refresh()
+    }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _state.value = graph.core.appealQueue(principal).toScreenState()
+        }
+    }
+
+    fun decide(
+        appealId: org.fisabilillah.core.model.AppealId,
+        state: org.fisabilillah.core.model.AppealState,
+        note: String,
+        onResult: (String?) -> Unit,
+    ) {
+        viewModelScope.launch {
+            _submitting.value = true
+            val outcome = graph.core.reviewAppeal.decide(principal, appealId, state, note)
+            _submitting.value = false
+            refresh()
+            onResult(
+                when (outcome) {
+                    is Outcome.Success -> null
+                    is Outcome.Refused -> outcome.message
+                    is Outcome.Invalid -> outcome.errors.first().message
+                    is Outcome.NotFound -> "We could not find ${outcome.what}."
+                },
+            )
         }
     }
 }

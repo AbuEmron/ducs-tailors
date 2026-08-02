@@ -67,12 +67,18 @@ internal object Routes {
     const val NOTIFICATIONS = "notifications"
     const val SAFETY_CENTRE = "safety"
     const val MY_REPORTS = "safety/reports"
+
+    /** What has been done to my account, and the form to argue with it. */
+    const val MY_RESTRICTIONS = "safety/restrictions"
+    const val SUBMIT_APPEAL = "safety/appeal/{caseId}"
     const val SERVICE_HISTORY = "profile/history"
     const val ACCOUNT_DATA = "settings/account-data"
 
     // Staff
     const val MODERATOR_DASHBOARD = "moderation"
     const val MODERATION_CASE = "moderation/case/{id}"
+    const val APPEAL_QUEUE = "moderation/appeals"
+    const val REVIEW_APPEAL = "moderation/appeal/{id}"
     const val ADMIN_DASHBOARD = "admin"
 
     // Static
@@ -94,6 +100,8 @@ internal object Routes {
     fun submitIntroduction(recipientId: String): String = "introduction/submit/$recipientId"
     fun report(targetType: String, targetId: String): String = "report/$targetType/$targetId"
     fun moderationCase(id: String): String = "moderation/case/$id"
+    fun submitAppeal(caseId: String): String = "safety/appeal/$caseId"
+    fun reviewAppeal(id: String): String = "moderation/appeal/$id"
 }
 
 /**

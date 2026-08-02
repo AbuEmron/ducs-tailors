@@ -25,7 +25,9 @@ import org.fisabilillah.core.domain.IdGenerator
 import org.fisabilillah.core.domain.LapseIntroductionsUseCase
 import org.fisabilillah.core.domain.ListConversationsUseCase
 import org.fisabilillah.core.domain.ManageTrustedContactsUseCase
+import org.fisabilillah.core.domain.AppealQueueUseCase
 import org.fisabilillah.core.domain.ModerationQueueUseCase
+import org.fisabilillah.core.domain.MyModerationRecordUseCase
 import org.fisabilillah.core.domain.OpenIntroductionConversationUseCase
 import org.fisabilillah.core.domain.OversightDirectory
 import org.fisabilillah.core.domain.PrivateImpactUseCase
@@ -294,6 +296,9 @@ public class CoreGraph(
     public val reviewAppeal: ReviewAppealUseCase =
         ReviewAppealUseCase(moderation, restrictions, notifications, auditLog, ids, clock)
     public val moderationQueue: ModerationQueueUseCase = ModerationQueueUseCase(moderation)
+    public val myModerationRecord: MyModerationRecordUseCase =
+        MyModerationRecordUseCase(restrictions, moderation, clock)
+    public val appealQueue: AppealQueueUseCase = AppealQueueUseCase(moderation)
 
     public val homeDigest: HomeDigestUseCase = HomeDigestUseCase(
         profiles, commitments, opportunities, requests, learning, projects, notifications,
