@@ -49,6 +49,14 @@ internal fun ProfileScreen(
     onTrustedContacts: () -> Unit,
     onWaliSettings: () -> Unit,
     onServiceHistory: () -> Unit,
+    onCommitments: () -> Unit,
+    onVerification: () -> Unit,
+    onQualifications: () -> Unit,
+    onCreateClass: () -> Unit,
+    onCreateProject: () -> Unit,
+    onCreateCommunity: () -> Unit,
+    onDevices: () -> Unit,
+    onRoles: () -> Unit,
     onSafetyCentre: () -> Unit,
     onNotifications: () -> Unit,
     onAccountData: () -> Unit,
@@ -200,9 +208,37 @@ internal fun ProfileScreen(
             SectionHeader(title = "Your record")
 
             SettingRow(
+                title = "Your commitments",
+                description = "Check in when you arrive, and confirm the people helping " +
+                    "with what you organise.",
+                onClick = onCommitments,
+            )
+
+            SettingRow(
                 title = "Service history",
                 description = "What you have committed to and completed. Private to you.",
                 onClick = onServiceHistory,
+            )
+
+            SettingRow(
+                title = "Verification",
+                description = "What the platform has checked about you, what each level " +
+                    "does not mean, and how to ask for more.",
+                onClick = onVerification,
+            )
+
+            SettingRow(
+                title = "Qualifications",
+                description = "Credentials you have claimed, and what a reviewer said " +
+                    "about them.",
+                onClick = onQualifications,
+            )
+
+            SettingRow(
+                title = "Where you are signed in",
+                description = "Every device with access to your account, and a way to end " +
+                    "any of them.",
+                onClick = onDevices,
             )
 
             SettingRow(
@@ -210,6 +246,33 @@ internal fun ProfileScreen(
                 description = "Export everything held about you, or ask for your account " +
                     "to be deleted.",
                 onClick = onAccountData,
+            )
+
+            SectionDivider()
+
+            // ── Offering something ───────────────────────────────────────────
+            SectionHeader(
+                title = "Offer something",
+                subtitle = "The platform is what its members bring to it.",
+            )
+
+            SettingRow(
+                title = "Teach a class",
+                description = "A subject you can help others with. You will be asked in " +
+                    "what capacity, and what you teach from.",
+                onClick = onCreateClass,
+            )
+
+            SettingRow(
+                title = "Start a project",
+                description = "A piece of work several people will do together.",
+                onClick = onCreateProject,
+            )
+
+            SettingRow(
+                title = "Start a community",
+                description = "A space with its own rules, which you would moderate.",
+                onClick = onCreateCommunity,
             )
 
             if (showModeration) {
@@ -223,6 +286,12 @@ internal fun ProfileScreen(
                     title = "Moderation queue",
                     description = "Open cases awaiting a human.",
                     onClick = onModeration,
+                )
+                SettingRow(
+                    title = "Roles",
+                    description = "Appoint and remove staff. The most consequential screen " +
+                        "in the application.",
+                    onClick = onRoles,
                 )
             }
 

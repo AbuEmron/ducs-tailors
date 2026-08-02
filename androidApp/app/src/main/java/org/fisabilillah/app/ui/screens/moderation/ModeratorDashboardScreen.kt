@@ -55,6 +55,7 @@ internal fun ModeratorDashboardScreen(
     isSafetyAdmin: Boolean,
     onOpenCase: (ModerationCaseId) -> Unit,
     onAppeals: () -> Unit,
+    onTrustReview: () -> Unit,
     onBack: () -> Unit,
 ) {
     val spacing = FiSabilillahTheme.spacing
@@ -99,6 +100,12 @@ internal fun ModeratorDashboardScreen(
                 SecondaryButton(
                     text = "Appeals waiting to be read",
                     onClick = onAppeals,
+                    modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
+                )
+                Spacer(Modifier.height(spacing.xs))
+                SecondaryButton(
+                    text = "Verification and qualification requests",
+                    onClick = onTrustReview,
                     modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
                 )
                 Spacer(Modifier.height(spacing.sm))

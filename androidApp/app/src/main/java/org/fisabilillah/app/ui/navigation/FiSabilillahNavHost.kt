@@ -57,7 +57,18 @@ import org.fisabilillah.app.ui.screens.requests.CreateRequestScreen
 import org.fisabilillah.app.ui.screens.requests.RequestDetailScreen
 import org.fisabilillah.app.ui.screens.requests.RequestsScreen
 import org.fisabilillah.app.ui.screens.safety.IntroductionDetailScreen
+import org.fisabilillah.app.ui.screens.create.CreateClassScreen
+import org.fisabilillah.app.ui.screens.create.CreateCommunityScreen
+import org.fisabilillah.app.ui.screens.create.CreateProjectScreen
+import org.fisabilillah.app.ui.screens.moderation.DeviceSessionsScreen
+import org.fisabilillah.app.ui.screens.moderation.RoleAdministrationScreen
+import org.fisabilillah.app.ui.screens.profile.EndorseScreen
+import org.fisabilillah.app.ui.screens.profile.MyCommitmentsScreen
 import org.fisabilillah.app.ui.screens.safety.AppealQueueScreen
+import org.fisabilillah.app.ui.screens.trust.MyQualificationsScreen
+import org.fisabilillah.app.ui.screens.trust.MyVerificationScreen
+import org.fisabilillah.app.ui.screens.trust.RequestVerificationScreen
+import org.fisabilillah.app.ui.screens.trust.TrustReviewScreen
 import org.fisabilillah.app.ui.screens.safety.MyReportsScreen
 import org.fisabilillah.app.ui.screens.safety.MyRestrictionsScreen
 import org.fisabilillah.app.ui.screens.safety.SubmitAppealScreen
@@ -78,7 +89,12 @@ import org.fisabilillah.app.ui.viewmodel.CommunityViewModel
 import org.fisabilillah.app.ui.viewmodel.HomeViewModel
 import org.fisabilillah.app.ui.viewmodel.LearnViewModel
 import org.fisabilillah.app.ui.viewmodel.MessagesViewModel
+import org.fisabilillah.app.ui.viewmodel.AccountDataViewModel
+import org.fisabilillah.app.ui.viewmodel.AdministrationViewModel
 import org.fisabilillah.app.ui.viewmodel.AppealQueueViewModel
+import org.fisabilillah.app.ui.viewmodel.AuthoringViewModel
+import org.fisabilillah.app.ui.viewmodel.CommitmentsViewModel
+import org.fisabilillah.app.ui.viewmodel.TrustViewModel
 import org.fisabilillah.app.ui.viewmodel.ModerationViewModel
 import org.fisabilillah.app.ui.viewmodel.MyModerationRecordViewModel
 import org.fisabilillah.app.ui.viewmodel.NotificationsViewModel
@@ -93,7 +109,10 @@ import org.fisabilillah.app.ui.viewmodel.SubmitIntroductionViewModel
 import org.fisabilillah.app.ui.viewmodel.WaliViewModel
 import org.fisabilillah.core.auth.MemberRegistration
 import org.fisabilillah.core.domain.CompleteOnboardingUseCase
+import org.fisabilillah.core.domain.CreateCommunityUseCase
+import org.fisabilillah.core.domain.CreateLearningOfferingUseCase
 import org.fisabilillah.core.domain.CreateOpportunityUseCase
+import org.fisabilillah.core.domain.CreateProjectUseCase
 import org.fisabilillah.core.domain.CreateServiceRequestUseCase
 import org.fisabilillah.core.domain.DefaultOpportunityTiming
 import org.fisabilillah.core.domain.IntroductionDecisionAction
@@ -102,6 +121,7 @@ import org.fisabilillah.core.domain.TakeModerationActionUseCase
 import org.fisabilillah.core.model.ApproximateLocation
 import org.fisabilillah.core.model.Availability
 import org.fisabilillah.core.model.CampaignId
+import org.fisabilillah.core.model.CommitmentId
 import org.fisabilillah.core.model.CommunityId
 import org.fisabilillah.core.model.ConversationId
 import org.fisabilillah.core.model.ExactLocation
@@ -118,6 +138,7 @@ import org.fisabilillah.core.model.ProjectId
 import org.fisabilillah.core.model.PurposeSubject
 import org.fisabilillah.core.model.ReportTarget
 import org.fisabilillah.core.model.RequestId
+import org.fisabilillah.core.model.ServiceCategory
 import org.fisabilillah.core.model.ServiceRequest
 import org.fisabilillah.core.model.UserId
 import org.fisabilillah.core.policy.ValidationError
@@ -719,6 +740,14 @@ internal fun FiSabilillahNavHost(
                 onTrustedContacts = { navController.navigate(Routes.TRUSTED_CONTACTS) },
                 onWaliSettings = { navController.navigate(Routes.WALI_SETTINGS) },
                 onServiceHistory = { navController.navigate(Routes.SERVICE_HISTORY) },
+                onCommitments = { navController.navigate(Routes.MY_COMMITMENTS) },
+                onVerification = { navController.navigate(Routes.MY_VERIFICATION) },
+                onQualifications = { navController.navigate(Routes.MY_QUALIFICATIONS) },
+                onCreateClass = { navController.navigate(Routes.CREATE_CLASS) },
+                onCreateProject = { navController.navigate(Routes.CREATE_PROJECT) },
+                onCreateCommunity = { navController.navigate(Routes.CREATE_COMMUNITY) },
+                onDevices = { navController.navigate(Routes.DEVICE_SESSIONS) },
+                onRoles = { navController.navigate(Routes.ROLE_ADMINISTRATION) },
                 onSafetyCentre = { navController.navigate(Routes.SAFETY_CENTRE) },
                 onNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
                 onAccountData = { navController.navigate(Routes.ACCOUNT_DATA) },
@@ -771,9 +800,268 @@ internal fun FiSabilillahNavHost(
         }
 
         composable(Routes.ACCOUNT_DATA) {
+            val viewModel: AccountDataViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> AccountDataViewModel(g, p) },
+            )
             AccountDataScreen(
-                onExport = { },
-                onRequestDeletion = { },
+                onExport = viewModel::exportData,
+                onRequestDeletion = viewModel::requestDeletion,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.DEVICE_SESSIONS) {
+            val viewModel: AdministrationViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> AdministrationViewModel(g, p) },
+            )
+            val sessions by viewModel.sessions.collectAsState()
+            val refusal by viewModel.refusal.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+
+            DeviceSessionsScreen(
+                sessions = sessions,
+                currentSessionId = null,
+                refusal = refusal,
+                submitting = submitting,
+                onRevoke = viewModel::endSession,
+                onRevokeAllOthers = {
+                    sessions.firstOrNull()?.let { viewModel.endOtherSessions(it.id) }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        // ── Trust ─────────────────────────────────────────────────────────────
+        composable(Routes.MY_VERIFICATION) {
+            val viewModel: TrustViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> TrustViewModel(g, p) },
+            )
+            val mine by viewModel.mine.collectAsState()
+
+            MyVerificationScreen(
+                state = mine.data,
+                loading = mine.loading,
+                refusal = mine.refusal,
+                onRequest = { navController.navigate(Routes.REQUEST_VERIFICATION) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.REQUEST_VERIFICATION) {
+            val viewModel: TrustViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> TrustViewModel(g, p) },
+            )
+            val errors by viewModel.errors.collectAsState()
+            val refusal by viewModel.refusal.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+
+            RequestVerificationScreen(
+                errors = errors,
+                refusal = refusal,
+                submitting = submitting,
+                onSubmit = { level, method, evidence, note ->
+                    viewModel.requestVerification(level, method, evidence, note) { ok ->
+                        if (ok) navController.popBackStack()
+                    }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.MY_QUALIFICATIONS) {
+            val viewModel: TrustViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> TrustViewModel(g, p) },
+            )
+            val qualifications by viewModel.qualifications.collectAsState()
+            val errors by viewModel.errors.collectAsState()
+            val refusal by viewModel.refusal.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+
+            MyQualificationsScreen(
+                qualifications = qualifications,
+                errors = errors,
+                refusal = refusal,
+                submitting = submitting,
+                onSubmit = { title, body, year ->
+                    viewModel.submitQualification(title, body, year) { }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.TRUST_REVIEW) {
+            val viewModel: TrustViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> TrustViewModel(g, p) },
+            )
+            val verifications by viewModel.verificationQueue.collectAsState()
+            val qualifications by viewModel.qualificationQueue.collectAsState()
+            val refusal by viewModel.refusal.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+
+            TrustReviewScreen(
+                verifications = verifications,
+                qualifications = qualifications,
+                canReviewVerifications = principal.canModerate(),
+                refusal = refusal,
+                submitting = submitting,
+                onDecideVerification = viewModel::decideVerification,
+                onDecideQualification = viewModel::decideQualification,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        // ── Commitments ───────────────────────────────────────────────────────
+        composable(Routes.MY_COMMITMENTS) {
+            val viewModel: CommitmentsViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> CommitmentsViewModel(g, p) },
+            )
+            val mine by viewModel.mine.collectAsState()
+            val awaiting by viewModel.awaiting.collectAsState()
+            val loading by viewModel.loading.collectAsState()
+            val refusal by viewModel.refusal.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+
+            MyCommitmentsScreen(
+                commitments = mine,
+                awaitingMyConfirmation = awaiting,
+                loading = loading,
+                refusal = refusal,
+                submitting = submitting,
+                onCheckIn = viewModel::checkIn,
+                onCheckOut = viewModel::checkOut,
+                onConfirm = viewModel::confirm,
+                onEndorse = { navController.navigate(Routes.endorse(it.value)) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.ENDORSE) { entry ->
+            val commitmentId = CommitmentId(entry.arguments?.getString("id").orEmpty())
+            val viewModel: CommitmentsViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> CommitmentsViewModel(g, p) },
+            )
+            val refusal by viewModel.refusal.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+
+            EndorseScreen(
+                submitting = submitting,
+                refusal = refusal,
+                onSubmit = { note ->
+                    viewModel.endorse(
+                        commitmentId,
+                        ServiceCategory.COMMUNITY_CLEANUP,
+                        note,
+                    ) { ok -> if (ok) navController.popBackStack() }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        // ── Creating things ───────────────────────────────────────────────────
+        composable(Routes.CREATE_CLASS) {
+            val viewModel: AuthoringViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> AuthoringViewModel(g, p) },
+            )
+            val errors by viewModel.errors.collectAsState()
+            val refusal by viewModel.refusal.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+
+            CreateClassScreen(
+                errors = errors,
+                refusal = refusal,
+                submitting = submitting,
+                onSubmit = { draft ->
+                    viewModel.createClass(
+                        CreateLearningOfferingUseCase.Command(
+                            title = draft.title,
+                            summary = draft.summary,
+                            subject = draft.subject,
+                            level = draft.level,
+                            capacity = draft.capacity,
+                            format = draft.format,
+                            maxStudents = draft.maxStudents,
+                            methodology = draft.methodology,
+                            genderArrangement = draft.genderArrangement,
+                            sameGenderStudentsOnly = draft.sameGenderStudentsOnly,
+                            sourceReferences = draft.sources,
+                            isPeerLearning = draft.isPeerLearning,
+                        ),
+                    ) { ok -> if (ok) navController.popBackStack() }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.CREATE_PROJECT) {
+            val viewModel: AuthoringViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> AuthoringViewModel(g, p) },
+            )
+            val errors by viewModel.errors.collectAsState()
+            val refusal by viewModel.refusal.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+
+            CreateProjectScreen(
+                errors = errors,
+                refusal = refusal,
+                submitting = submitting,
+                onSubmit = { draft ->
+                    viewModel.createProject(
+                        CreateProjectUseCase.Command(
+                            title = draft.title,
+                            summary = draft.summary,
+                            category = draft.category,
+                            volunteersNeeded = draft.volunteersNeeded,
+                            genderArrangement = draft.genderArrangement,
+                            isPubliclyListed = draft.isPubliclyListed,
+                        ),
+                    ) { ok -> if (ok) navController.popBackStack() }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.CREATE_COMMUNITY) {
+            val viewModel: AuthoringViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> AuthoringViewModel(g, p) },
+            )
+            val errors by viewModel.errors.collectAsState()
+            val refusal by viewModel.refusal.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+
+            CreateCommunityScreen(
+                errors = errors,
+                refusal = refusal,
+                submitting = submitting,
+                onSubmit = { draft ->
+                    viewModel.createCommunity(
+                        CreateCommunityUseCase.Command(
+                            name = draft.name,
+                            kind = draft.kind,
+                            summary = draft.summary,
+                            membershipPolicy = draft.membershipPolicy,
+                            genderArrangement = draft.genderArrangement,
+                        ),
+                    ) { ok -> if (ok) navController.popBackStack() }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.ROLE_ADMINISTRATION) {
+            val viewModel: AdministrationViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> AdministrationViewModel(g, p) },
+            )
+            val staff by viewModel.staff.collectAsState()
+            val refusal by viewModel.refusal.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+
+            RoleAdministrationScreen(
+                staff = staff,
+                grantable = viewModel.grantable,
+                refusal = refusal,
+                submitting = submitting,
+                onGrant = viewModel::grant,
+                onRevoke = viewModel::revoke,
                 onBack = { navController.popBackStack() },
             )
         }
@@ -1028,6 +1316,7 @@ internal fun FiSabilillahNavHost(
                 isSafetyAdmin = principal?.isSafetyAdmin == true,
                 onOpenCase = { navController.navigate(Routes.moderationCase(it.value)) },
                 onAppeals = { navController.navigate(Routes.APPEAL_QUEUE) },
+                onTrustReview = { navController.navigate(Routes.TRUST_REVIEW) },
                 onBack = { navController.popBackStack() },
             )
         }

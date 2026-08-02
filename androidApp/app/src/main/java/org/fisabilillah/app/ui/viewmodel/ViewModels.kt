@@ -13,6 +13,28 @@ import org.fisabilillah.core.domain.IntroductionDecisionAction
 import org.fisabilillah.core.domain.LearningSearchCriteria
 import org.fisabilillah.core.domain.OpportunitySearchCriteria
 import org.fisabilillah.core.domain.AppealQueueUseCase
+import org.fisabilillah.core.domain.CreateCommunityUseCase
+import org.fisabilillah.core.domain.CreateLearningOfferingUseCase
+import org.fisabilillah.core.domain.CreateProjectUseCase
+import org.fisabilillah.core.domain.ExportMyDataUseCase
+import org.fisabilillah.core.domain.MyVerificationUseCase
+import org.fisabilillah.core.domain.RequestAccountDeletionUseCase
+import org.fisabilillah.core.domain.RequestVerificationUseCase
+import org.fisabilillah.core.domain.SubmitQualificationUseCase
+import org.fisabilillah.core.model.AccountRole
+import org.fisabilillah.core.model.Commitment
+import org.fisabilillah.core.model.CommitmentId
+import org.fisabilillah.core.model.CommitmentSubject
+import org.fisabilillah.core.model.DeviceSession
+import org.fisabilillah.core.model.Profile
+import org.fisabilillah.core.model.Qualification
+import org.fisabilillah.core.model.QualificationId
+import org.fisabilillah.core.model.ServiceCategory
+import org.fisabilillah.core.model.UserId
+import org.fisabilillah.core.model.VerificationLevel
+import org.fisabilillah.core.model.VerificationMethod
+import org.fisabilillah.core.model.VerificationRequest
+import org.fisabilillah.core.model.VerificationRequestId
 import org.fisabilillah.core.domain.MyModerationRecordUseCase
 import org.fisabilillah.core.domain.Outcome
 import org.fisabilillah.core.domain.PeopleSearchCriteria
@@ -1075,3 +1097,311 @@ internal class CommunityViewModel(
     suspend fun organization(id: org.fisabilillah.core.model.OrganizationId) =
         graph.core.organizations.find(id)
 }
+
+// ── Trust, authoring and administration ──────────────────────────────────────
+
+/**
+ * One view model for both sides of trust, because a member and a reviewer are looking at
+ * the same data from different ends and keeping two would mean two places to forget a
+ * refresh.
+ */
+internal class TrustViewModel(
+    private val graph: AppGraph,
+    private val principal: Principal,
+) : ViewModel() {
+
+    private val _mine = MutableStateFlow(ScreenState<MyVerificationUseCase.State>())
+    val mine: StateFlow<ScreenState<MyVerificationUseCase.State>> = _mine.asStateFlow()
+
+    private val _qualifications = MutableStateFlow<List<Qualification>>(emptyList())
+    val qualifications: StateFlow<List<Qualification>> = _qualifications.asStateFlow()
+
+    private val _verificationQueue = MutableStateFlow<List<VerificationRequest>>(emptyList())
+    val verificationQueue: StateFlow<List<VerificationRequest>> = _verificationQueue.asStateFlow()
+
+    private val _qualificationQueue = MutableStateFlow<List<Qualification>>(emptyList())
+    val qualificationQueue: StateFlow<List<Qualification>> = _qualificationQueue.asStateFlow()
+
+    private val _errors = MutableStateFlow<List<ValidationError>>(emptyList())
+    val errors: StateFlow<List<ValidationError>> = _errors.asStateFlow()
+
+    private val _refusal = MutableStateFlow<String?>(null)
+    val refusal: StateFlow<String?> = _refusal.asStateFlow()
+
+    private val _submitting = MutableStateFlow(false)
+    val submitting: StateFlow<Boolean> = _submitting.asStateFlow()
+
+    init { refresh() }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _mine.value = graph.core.myVerification(principal).toScreenState()
+            _qualifications.value = graph.core.reviewQualification.mine(principal).valueOr(emptyList())
+            _verificationQueue.value =
+                graph.core.decideVerification.queue(principal).valueOr(emptyList())
+            _qualificationQueue.value =
+                graph.core.reviewQualification.queue(principal).valueOr(emptyList())
+        }
+    }
+
+    fun requestVerification(
+        level: VerificationLevel,
+        method: VerificationMethod,
+        evidence: List<String>,
+        note: String?,
+        onDone: (Boolean) -> Unit,
+    ) = act(onDone) {
+        graph.core.requestVerification(
+            principal,
+            RequestVerificationUseCase.Command(level, method, evidence, note),
+        )
+    }
+
+    fun submitQualification(title: String, issuingBody: String, year: Int?, onDone: (Boolean) -> Unit) =
+        act(onDone) {
+            graph.core.submitQualification(
+                principal,
+                SubmitQualificationUseCase.Command(title, issuingBody, year),
+            )
+        }
+
+    fun decideVerification(id: VerificationRequestId, approve: Boolean, note: String) =
+        act({}) {
+            if (approve) {
+                graph.core.decideVerification.approve(principal, id, note)
+            } else {
+                graph.core.decideVerification.reject(principal, id, note)
+            }
+        }
+
+    fun decideQualification(id: QualificationId, verified: Boolean, note: String) =
+        act({}) { graph.core.reviewQualification.decide(principal, id, verified, note) }
+
+    private fun act(onDone: (Boolean) -> Unit, block: suspend () -> Outcome<*>) {
+        viewModelScope.launch {
+            _submitting.value = true
+            _errors.value = emptyList()
+            _refusal.value = null
+            val outcome = block()
+            _submitting.value = false
+            when (outcome) {
+                is Outcome.Success -> Unit
+                is Outcome.Invalid -> _errors.value = outcome.errors
+                is Outcome.Refused -> _refusal.value = outcome.message
+                is Outcome.NotFound -> _refusal.value = "We could not find ${outcome.what}."
+            }
+            refresh()
+            onDone(outcome is Outcome.Success)
+        }
+    }
+}
+
+/** Creating a class, a project or a community. One view model; the screens differ. */
+internal class AuthoringViewModel(
+    private val graph: AppGraph,
+    private val principal: Principal,
+) : ViewModel() {
+
+    private val _errors = MutableStateFlow<List<ValidationError>>(emptyList())
+    val errors: StateFlow<List<ValidationError>> = _errors.asStateFlow()
+
+    private val _refusal = MutableStateFlow<String?>(null)
+    val refusal: StateFlow<String?> = _refusal.asStateFlow()
+
+    private val _submitting = MutableStateFlow(false)
+    val submitting: StateFlow<Boolean> = _submitting.asStateFlow()
+
+    fun createClass(command: CreateLearningOfferingUseCase.Command, onDone: (Boolean) -> Unit) =
+        act(onDone) { graph.core.createLearningOffering(principal, command) }
+
+    fun createProject(command: CreateProjectUseCase.Command, onDone: (Boolean) -> Unit) =
+        act(onDone) { graph.core.createProject(principal, command) }
+
+    fun createCommunity(command: CreateCommunityUseCase.Command, onDone: (Boolean) -> Unit) =
+        act(onDone) { graph.core.createCommunity(principal, command) }
+
+    private fun act(onDone: (Boolean) -> Unit, block: suspend () -> Outcome<*>) {
+        viewModelScope.launch {
+            _submitting.value = true
+            _errors.value = emptyList()
+            _refusal.value = null
+            val outcome = block()
+            _submitting.value = false
+            when (outcome) {
+                is Outcome.Success -> Unit
+                is Outcome.Invalid -> _errors.value = outcome.errors
+                is Outcome.Refused -> _refusal.value = outcome.message
+                is Outcome.NotFound -> _refusal.value = "We could not find ${outcome.what}."
+            }
+            onDone(outcome is Outcome.Success)
+        }
+    }
+}
+
+/** Commitments: the member's own, and the ones waiting on them as an organiser. */
+internal class CommitmentsViewModel(
+    private val graph: AppGraph,
+    private val principal: Principal,
+) : ViewModel() {
+
+    private val _mine = MutableStateFlow<List<Commitment>>(emptyList())
+    val mine: StateFlow<List<Commitment>> = _mine.asStateFlow()
+
+    private val _awaiting = MutableStateFlow<List<Commitment>>(emptyList())
+    val awaiting: StateFlow<List<Commitment>> = _awaiting.asStateFlow()
+
+    private val _loading = MutableStateFlow(true)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
+    private val _refusal = MutableStateFlow<String?>(null)
+    val refusal: StateFlow<String?> = _refusal.asStateFlow()
+
+    private val _submitting = MutableStateFlow(false)
+    val submitting: StateFlow<Boolean> = _submitting.asStateFlow()
+
+    init { refresh() }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _loading.value = true
+            _mine.value = graph.core.commitments.forUser(principal.userId)
+
+            // Commitments on listings this member organises. Read here rather than in a
+            // repository query because "am I the organiser" is a fact about the listing,
+            // and the commitment does not carry it.
+            val myListings = graph.core.store.opportunities.values
+                .filter { it.organizerId == principal.userId }
+                .map { it.id }
+                .toSet()
+            _awaiting.value = graph.core.store.commitments.values.filter { commitment ->
+                val subject = commitment.subject
+                subject is CommitmentSubject.Opportunity && subject.id in myListings
+            }
+            _loading.value = false
+        }
+    }
+
+    fun checkIn(id: CommitmentId) = act { graph.core.commitmentActions.checkIn(principal, id) }
+    fun checkOut(id: CommitmentId) = act { graph.core.commitmentActions.checkOut(principal, id) }
+    fun confirm(id: CommitmentId, attended: Boolean) =
+        act { graph.core.commitmentActions.confirmByOrganizer(principal, id, attended) }
+
+    fun endorse(id: CommitmentId, category: ServiceCategory, note: String?, onDone: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            _submitting.value = true
+            val outcome = graph.core.endorseTask(principal, id, category, note)
+            _submitting.value = false
+            if (outcome is Outcome.Refused) _refusal.value = outcome.message
+            refresh()
+            onDone(outcome is Outcome.Success)
+        }
+    }
+
+    private fun act(block: suspend () -> Outcome<*>) {
+        viewModelScope.launch {
+            _submitting.value = true
+            _refusal.value = null
+            val outcome = block()
+            _submitting.value = false
+            if (outcome is Outcome.Refused) _refusal.value = outcome.message
+            refresh()
+        }
+    }
+}
+
+/** Role administration and device sessions. */
+internal class AdministrationViewModel(
+    private val graph: AppGraph,
+    private val principal: Principal,
+) : ViewModel() {
+
+    private val _staff = MutableStateFlow<List<Profile>>(emptyList())
+    val staff: StateFlow<List<Profile>> = _staff.asStateFlow()
+
+    private val _sessions = MutableStateFlow<List<DeviceSession>>(emptyList())
+    val sessions: StateFlow<List<DeviceSession>> = _sessions.asStateFlow()
+
+    private val _refusal = MutableStateFlow<String?>(null)
+    val refusal: StateFlow<String?> = _refusal.asStateFlow()
+
+    private val _submitting = MutableStateFlow(false)
+    val submitting: StateFlow<Boolean> = _submitting.asStateFlow()
+
+    val grantable: List<AccountRole> get() = graph.core.manageRoles.grantable
+
+    init { refresh() }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _staff.value = graph.core.manageRoles.staff(principal).valueOr(emptyList())
+            _sessions.value = graph.core.devices.mine(principal).valueOr(emptyList())
+        }
+    }
+
+    fun grant(userId: UserId, role: AccountRole, reason: String) =
+        act { graph.core.manageRoles.grant(principal, userId, role, reason) }
+
+    fun revoke(userId: UserId, role: AccountRole, reason: String) =
+        act { graph.core.manageRoles.revoke(principal, userId, role, reason) }
+
+    fun endSession(id: String) = act { graph.core.devices.revoke(principal, id) }
+    fun endOtherSessions(keep: String) = act { graph.core.devices.revokeAllOthers(principal, keep) }
+
+    private fun act(block: suspend () -> Outcome<*>) {
+        viewModelScope.launch {
+            _submitting.value = true
+            _refusal.value = null
+            val outcome = block()
+            _submitting.value = false
+            when (outcome) {
+                is Outcome.Refused -> _refusal.value = outcome.message
+                is Outcome.Invalid -> _refusal.value = outcome.errors.first().message
+                is Outcome.NotFound -> _refusal.value = "We could not find ${outcome.what}."
+                is Outcome.Success -> Unit
+            }
+            refresh()
+        }
+    }
+}
+
+/** Your own data, and leaving. */
+internal class AccountDataViewModel(
+    private val graph: AppGraph,
+    private val principal: Principal,
+) : ViewModel() {
+
+    private val _export = MutableStateFlow<ExportMyDataUseCase.Export?>(null)
+    val export: StateFlow<ExportMyDataUseCase.Export?> = _export.asStateFlow()
+
+    private val _deletion = MutableStateFlow<RequestAccountDeletionUseCase.Result?>(null)
+    val deletion: StateFlow<RequestAccountDeletionUseCase.Result?> = _deletion.asStateFlow()
+
+    private val _refusal = MutableStateFlow<String?>(null)
+    val refusal: StateFlow<String?> = _refusal.asStateFlow()
+
+    fun exportData() {
+        viewModelScope.launch {
+            when (val outcome = graph.core.exportMyData(principal)) {
+                is Outcome.Success -> _export.value = outcome.value
+                is Outcome.Refused -> _refusal.value = outcome.message
+                is Outcome.NotFound -> _refusal.value = "We could not find ${outcome.what}."
+                is Outcome.Invalid -> _refusal.value = outcome.errors.first().message
+            }
+        }
+    }
+
+    fun requestDeletion() {
+        viewModelScope.launch {
+            when (val outcome = graph.core.requestAccountDeletion(principal, null)) {
+                is Outcome.Success -> _deletion.value = outcome.value
+                is Outcome.Refused -> _refusal.value = outcome.message
+                is Outcome.NotFound -> _refusal.value = "We could not find ${outcome.what}."
+                is Outcome.Invalid -> _refusal.value = outcome.errors.first().message
+            }
+        }
+    }
+}
+
+/** Folds an outcome to its value or a fallback, for the read-only list loads above. */
+private fun <T> Outcome<T>.valueOr(fallback: T): T =
+    if (this is Outcome.Success) value else fallback

@@ -54,6 +54,9 @@ internal object Routes {
     // Creation and composition
     const val CREATE_LISTING = "create/listing"
     const val CREATE_REQUEST = "create/request"
+    const val CREATE_CLASS = "create/class"
+    const val CREATE_PROJECT = "create/project"
+    const val CREATE_COMMUNITY = "create/community"
     const val COMPOSE_CONVERSATION = "compose/{recipientId}"
     const val SUBMIT_INTRODUCTION = "introduction/submit/{recipientId}"
     const val REPORT = "report/{targetType}/{targetId}"
@@ -73,6 +76,17 @@ internal object Routes {
     const val SUBMIT_APPEAL = "safety/appeal/{caseId}"
     const val SERVICE_HISTORY = "profile/history"
     const val ACCOUNT_DATA = "settings/account-data"
+    const val DEVICE_SESSIONS = "settings/devices"
+
+    // Trust
+    const val MY_VERIFICATION = "trust/verification"
+    const val REQUEST_VERIFICATION = "trust/verification/request"
+    const val MY_QUALIFICATIONS = "trust/qualifications"
+    const val TRUST_REVIEW = "moderation/trust"
+
+    // Commitments
+    const val MY_COMMITMENTS = "commitments"
+    const val ENDORSE = "commitments/endorse/{id}"
 
     // Staff
     const val MODERATOR_DASHBOARD = "moderation"
@@ -80,6 +94,7 @@ internal object Routes {
     const val APPEAL_QUEUE = "moderation/appeals"
     const val REVIEW_APPEAL = "moderation/appeal/{id}"
     const val ADMIN_DASHBOARD = "admin"
+    const val ROLE_ADMINISTRATION = "admin/roles"
 
     // Static
     const val TERMS = "legal/terms"
@@ -102,6 +117,7 @@ internal object Routes {
     fun moderationCase(id: String): String = "moderation/case/$id"
     fun submitAppeal(caseId: String): String = "safety/appeal/$caseId"
     fun reviewAppeal(id: String): String = "moderation/appeal/$id"
+    fun endorse(commitmentId: String): String = "commitments/endorse/$commitmentId"
 }
 
 /**
