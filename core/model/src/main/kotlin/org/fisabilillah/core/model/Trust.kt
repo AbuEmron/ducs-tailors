@@ -106,6 +106,15 @@ public data class TaskEndorsement(
 ) {
     init {
         require(fromUserId != aboutUserId) { "A person cannot endorse themselves" }
-        require(note == null || note.length <= 240) { "An endorsement note must be brief" }
+        require(note == null || note.length <= MAX_NOTE) { "An endorsement note must be brief" }
+    }
+
+    public companion object {
+        /**
+         * Short on purpose. An endorsement is meant to be a sentence about a specific
+         * occasion, not a testimonial, and a long free-text field on a person's record is
+         * how reputation systems turn into reputation contests.
+         */
+        public const val MAX_NOTE: Int = 240
     }
 }

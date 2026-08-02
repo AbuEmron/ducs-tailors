@@ -55,6 +55,8 @@ import org.fisabilillah.core.model.ServiceRequest
 import org.fisabilillah.core.model.Skill
 import org.fisabilillah.core.model.TaskId
 import org.fisabilillah.core.model.Timestamp
+import org.fisabilillah.core.model.DeviceSession
+import org.fisabilillah.core.model.TaskEndorsement
 import org.fisabilillah.core.model.TrustRecord
 import org.fisabilillah.core.model.TrustedContact
 import org.fisabilillah.core.model.TrustedContactId
@@ -251,6 +253,23 @@ public interface TrustRepository {
     public suspend fun save(record: TrustRecord): TrustRecord
     public suspend fun impactFor(userId: UserId): PrivateImpactRecord
     public suspend fun saveImpact(record: PrivateImpactRecord)
+
+    /**
+     * Endorsements, stored individually rather than only as a count.
+     *
+     * The count is what the member sees; the individual rows are what makes it possible
+     * to refuse a second endorsement of the same occasion, and to remove one if the
+     * commitment behind it turns out not to have happened.
+     */
+    public suspend fun saveEndorsement(endorsement: TaskEndorsement)
+    public suspend fun endorsementsFor(userId: UserId): List<TaskEndorsement>
+}
+
+/** Sessions a member can see and end. See `DeviceSessionUseCase`. */
+public interface DeviceSessionRepository {
+    public suspend fun find(id: String): DeviceSession?
+    public suspend fun forUser(userId: UserId): List<DeviceSession>
+    public suspend fun save(session: DeviceSession)
 }
 
 public interface ModerationRepository {

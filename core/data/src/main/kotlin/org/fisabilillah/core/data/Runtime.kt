@@ -30,7 +30,10 @@ import org.fisabilillah.core.domain.CommunityMembershipUseCase
 import org.fisabilillah.core.domain.CreateCommunityUseCase
 import org.fisabilillah.core.domain.CreateLearningOfferingUseCase
 import org.fisabilillah.core.domain.CreateProjectUseCase
+import org.fisabilillah.core.domain.DeviceSessionUseCase
+import org.fisabilillah.core.domain.EndorseTaskUseCase
 import org.fisabilillah.core.domain.ExportMyDataUseCase
+import org.fisabilillah.core.domain.ReportSafetyIncidentUseCase
 import org.fisabilillah.core.domain.ManageRolesUseCase
 import org.fisabilillah.core.domain.ProjectTaskUseCase
 import org.fisabilillah.core.domain.RequestAccountDeletionUseCase
@@ -234,6 +237,8 @@ public class CoreGraph(
     public val qualifications: InMemoryQualificationRepository =
         InMemoryQualificationRepository(store)
     public val verifications: InMemoryVerificationRepository = InMemoryVerificationRepository(store)
+    public val deviceSessions: InMemoryDeviceSessionRepository =
+        InMemoryDeviceSessionRepository(store)
     public val campaigns: InMemoryCampaignRepository = InMemoryCampaignRepository(store)
     public val skills: InMemorySkillRepository = InMemorySkillRepository(store)
 
@@ -324,6 +329,13 @@ public class CoreGraph(
         CreateCommunityUseCase(communities, profiles, auditLog, ids, clock)
     public val communityMembership: CommunityMembershipUseCase =
         CommunityMembershipUseCase(communities, profiles, notifications, ids, clock)
+
+    public val endorseTask: EndorseTaskUseCase =
+        EndorseTaskUseCase(commitments, opportunities, trust, notifications, ids, clock)
+    public val reportIncident: ReportSafetyIncidentUseCase =
+        ReportSafetyIncidentUseCase(moderation, opportunities, ids, clock)
+    public val devices: DeviceSessionUseCase =
+        DeviceSessionUseCase(deviceSessions, notifications, ids, clock)
 
     public val manageRoles: ManageRolesUseCase =
         ManageRolesUseCase(profiles, notifications, auditLog, ids, clock)

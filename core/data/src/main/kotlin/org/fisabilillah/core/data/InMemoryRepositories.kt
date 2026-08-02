@@ -24,6 +24,7 @@ import org.fisabilillah.core.domain.PeopleSearchCriteria
 import org.fisabilillah.core.domain.ProfileRepository
 import org.fisabilillah.core.domain.ProjectRepository
 import org.fisabilillah.core.domain.QualificationRepository
+import org.fisabilillah.core.domain.DeviceSessionRepository
 import org.fisabilillah.core.domain.VerificationRepository
 import org.fisabilillah.core.domain.RequestSearchCriteria
 import org.fisabilillah.core.domain.RestrictionRepository
@@ -94,6 +95,8 @@ import org.fisabilillah.core.model.Skill
 import org.fisabilillah.core.model.SkillId
 import org.fisabilillah.core.model.TaskId
 import org.fisabilillah.core.model.Timestamp
+import org.fisabilillah.core.model.DeviceSession
+import org.fisabilillah.core.model.TaskEndorsement
 import org.fisabilillah.core.model.TrustRecord
 import org.fisabilillah.core.model.TrustedContact
 import org.fisabilillah.core.model.TrustedContactId
@@ -161,6 +164,8 @@ public class InMemoryStore {
     public val consents: MutableList<ConsentRecord> = mutableListOf()
     public val qualifications: MutableList<Qualification> = mutableListOf()
     public val verificationRequests: MutableMap<VerificationRequestId, VerificationRequest> = linkedMapOf()
+    public val endorsements: MutableList<TaskEndorsement> = mutableListOf()
+    public val deviceSessions: MutableMap<String, DeviceSession> = linkedMapOf()
     public val campaigns: MutableMap<CampaignId, Campaign> = linkedMapOf()
     public val skills: MutableMap<SkillId, Skill> = linkedMapOf()
 
@@ -804,6 +809,15 @@ public class InMemoryTrustRepository(private val store: InMemoryStore) : TrustRe
         store.impactRecords[record.userId] = record
         store.touch()
     }
+
+    override suspend fun saveEndorsement(endorsement: TaskEndorsement): Unit =
+        store.mutex.withLock {
+            store.endorsements += endorsement
+            store.touch()
+        }
+
+    override suspend fun endorsementsFor(userId: UserId): List<TaskEndorsement> =
+        store.mutex.withLock { store.endorsements.filter { it.aboutUserId == userId } }
 }
 
 public class InMemoryModerationRepository(private val store: InMemoryStore) : ModerationRepository {
@@ -1060,4 +1074,19 @@ public class InMemorySkillRepository(private val store: InMemoryStore) : SkillRe
         store.mutex.withLock { store.skills.values.filter { !it.retired } }
 
     override suspend fun find(id: SkillId): Skill? = store.mutex.withLock { store.skills[id] }
+}
+
+public class InMemoryDeviceSessionRepository(private val store: InMemoryStore) :
+    DeviceSessionRepository {
+
+    override suspend fun find(id: String): DeviceSession? =
+        store.mutex.withLock { store.deviceSessions[id] }
+
+    override suspend fun forUser(userId: UserId): List<DeviceSession> =
+        store.mutex.withLock { store.deviceSessions.values.filter { it.userId == userId } }
+
+    override suspend fun save(session: DeviceSession): Unit = store.mutex.withLock {
+        store.deviceSessions[session.id] = session
+        store.touch()
+    }
 }
