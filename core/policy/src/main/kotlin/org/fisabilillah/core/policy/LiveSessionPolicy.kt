@@ -151,8 +151,13 @@ public object LiveSessionPolicy {
         // makes it a supervised tutorial; without one it is simply two people alone, which
         // this platform does not arrange.
         if (session.isOneToOne && crossGender && context.requestedRole == LiveRole.PARTICIPANT) {
+            // Oversight means a person who is actually in the room. An earlier version of
+            // this check also accepted `session.requiredOversight` — a field the host sets
+            // — which meant a host could declare "guardian present" on a room no guardian
+            // ever joined and the gate would admit it. A promise on a room record is not a
+            // chaperone.
             val overseen = context.moderatorPresent || context.guardianPresent ||
-                session.requiredOversight.any { it != LiveOversight.RECORDED_FOR_SAFEGUARDING }
+                session.activeParticipants.any { it.role.isOversight }
             if (!overseen) {
                 return refuse(LiveJoinRefusal.ONE_TO_ONE_CROSS_GENDER_WITHOUT_OVERSIGHT)
             }

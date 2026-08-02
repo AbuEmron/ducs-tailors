@@ -72,14 +72,21 @@ public data class LiveSession(
         require(scheduledEnd > scheduledStart) { "A session must end after it starts" }
     }
 
+    /**
+     * Who is in the room right now.
+     *
+     * Filters on removal as well as leaving. Counting somebody a moderator has just ejected
+     * would let them keep occupying a place, keep satisfying an oversight requirement, and
+     * keep blocking a recording consent they will never give.
+     */
     public val activeParticipants: List<LiveParticipant>
-        get() = participants.filter { it.leftAt == null }
+        get() = participants.filter { it.isPresent }
 
     public val isOneToOne: Boolean
         get() = kind == LiveSessionKind.ONE_TO_ONE_TUTORING || maxParticipants == 2
 
     public fun participant(userId: UserId): LiveParticipant? =
-        participants.firstOrNull { it.userId == userId && it.leftAt == null }
+        participants.firstOrNull { it.userId == userId && it.isPresent }
 
     /**
      * Recording may only begin when everyone currently in the room has said yes.

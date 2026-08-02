@@ -245,20 +245,117 @@ class LiveSessionPolicyTest {
         }
 
         @Test
-        fun `the same session is permitted once a guardian is in it`() {
+        fun `the same session is permitted once a guardian is actually in it`() {
             admitted(
                 LiveSessionPolicy.canJoin(
                     context(
                         session = session(
                             kind = LiveSessionKind.ONE_TO_ONE_TUTORING,
                             maxParticipants = 2,
-                            oversight = setOf(LiveOversight.GUARDIAN_PRESENT),
                         ),
                         joiner = sister,
                         gendersPresent = setOf(Gender.MALE),
                     ) { copy(guardianPresent = true) },
                 ),
             )
+        }
+
+        @Test
+        @DisplayName("declaring oversight on the room does not substitute for a person in it")
+        fun declaredOversightIsNotAChaperone() {
+            // The regression this guards against: the host controls `requiredOversight`, so
+            // accepting it as proof of supervision would let anyone label a room
+            // "guardian present" and then be alone in it. A promise on a record is not a
+            // chaperone.
+            assertEquals(
+                LiveJoinRefusal.ONE_TO_ONE_CROSS_GENDER_WITHOUT_OVERSIGHT,
+                refused(
+                    LiveSessionPolicy.canJoin(
+                        context(
+                            session = session(
+                                kind = LiveSessionKind.ONE_TO_ONE_TUTORING,
+                                maxParticipants = 2,
+                                oversight = setOf(
+                                    LiveOversight.GUARDIAN_PRESENT,
+                                    LiveOversight.MODERATOR_PRESENT,
+                                ),
+                            ),
+                            joiner = sister,
+                            gendersPresent = setOf(Gender.MALE),
+                        ),
+                    ),
+                ),
+            )
+        }
+
+        @Test
+        fun `an oversight participant already in the room satisfies the requirement`() {
+            val guardian = LiveParticipant(
+                sessionId = LiveSessionId("s1"),
+                userId = UserId("guardian"),
+                role = LiveRole.GUARDIAN,
+                joinedAt = Fixtures.NOW,
+                permissions = LiveMediaPermissions.observing("Guardian"),
+            )
+            admitted(
+                LiveSessionPolicy.canJoin(
+                    context(
+                        session = session(
+                            kind = LiveSessionKind.ONE_TO_ONE_TUTORING,
+                            maxParticipants = 3,
+                            participants = listOf(guardian),
+                        ),
+                        joiner = sister,
+                        gendersPresent = setOf(Gender.MALE),
+                    ),
+                ),
+            )
+        }
+
+        @Test
+        @DisplayName("a participant a moderator removed stops counting as present")
+        fun removedParticipantsStopCounting() {
+            val removed = LiveParticipant(
+                sessionId = LiveSessionId("s1"),
+                userId = UserId("removed"),
+                role = LiveRole.GUARDIAN,
+                joinedAt = Fixtures.NOW,
+                permissions = LiveMediaPermissions.observing("Guardian"),
+                removedAt = Fixtures.NOW,
+                removalReason = "Removed by a moderator",
+            )
+            // The removed guardian must not keep satisfying the oversight requirement.
+            assertEquals(
+                LiveJoinRefusal.ONE_TO_ONE_CROSS_GENDER_WITHOUT_OVERSIGHT,
+                refused(
+                    LiveSessionPolicy.canJoin(
+                        context(
+                            session = session(
+                                kind = LiveSessionKind.ONE_TO_ONE_TUTORING,
+                                maxParticipants = 3,
+                                participants = listOf(removed),
+                            ),
+                            joiner = sister,
+                            gendersPresent = setOf(Gender.MALE),
+                        ),
+                    ),
+                ),
+            )
+        }
+
+        @Test
+        fun `a removed participant no longer blocks a recording they never consented to`() {
+            val present = participant(teacher.id)
+            val removed = participant(sister.id).copy(
+                removedAt = Fixtures.NOW,
+                removalReason = "Removed by the host",
+            )
+            val s = session(
+                recording = RecordingPolicy.WITH_CONSENT_OF_EVERY_PARTICIPANT,
+                participants = listOf(present, removed),
+                consents = setOf(teacher.id),
+            )
+            assertEquals(RecordingDecision.Permitted, LiveSessionPolicy.recordingDecision(s))
         }
 
         @Test
