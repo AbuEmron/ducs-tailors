@@ -136,6 +136,41 @@ def check_balanced(path: Path, text: str) -> None:
         fail(path, f"unbalanced parentheses (off by {depth_paren})")
 
 
+def members_of(files: list[Path], type_name: str) -> set[str]:
+    """
+    The member names a class exposes: constructor properties, and the `val`/`var`/`fun`
+    declarations in its body.
+
+    Crude — it stops at the first line that starts a new top-level declaration rather than
+    tracking braces — but it is enough for the small data classes this check cares about.
+    """
+    members: set[str] = set()
+    header = re.compile(
+        r"^(?:public |internal )?(?:data |value |sealed )*class "
+        + re.escape(type_name)
+        + r"\b"
+    )
+    member = re.compile(
+        r"^\s+(?:public |internal |private |override |const )*"
+        r"(?:val|var|fun)\s+([A-Za-z_][A-Za-z0-9_]*)"
+    )
+    ctor_param = re.compile(r"^\s+(?:val|var)\s+([A-Za-z_][A-Za-z0-9_]*)")
+    for path in files:
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for index, line in enumerate(lines):
+            if not header.match(line):
+                continue
+            for following in lines[index + 1 :]:
+                # The class ends at a closing brace in the first column. A `)` there is
+                # the end of the constructor parameter list, not the end of the class.
+                if following.startswith("}"):
+                    break
+                found = member.match(following) or ctor_param.match(following)
+                if found:
+                    members.add(found.group(1))
+    return members
+
+
 def main() -> int:
     if not APP.exists():
         print(f"No Android sources found at {APP}")
@@ -177,6 +212,23 @@ def main() -> int:
 
         check_balanced(path, text)
 
+        # A duplicated import is not a style problem. Kotlin rejects the file outright
+        # with "Conflicting import: imported name 'X' is ambiguous" -- which is what
+        # happens when a block of imports is appended to a file that already had them.
+        imported_leaves: dict[str, str] = {}
+        for line in text.splitlines():
+            if not line.startswith("import "):
+                continue
+            full = line.removeprefix("import ").split(" as ")[0].strip()
+            leaf = full.rsplit(".", 1)[-1]
+            previous = imported_leaves.get(leaf)
+            if previous == full:
+                fail(path, f"imports '{full}' twice")
+            elif previous is not None:
+                fail(path, f"imports '{leaf}' from both '{previous}' and '{full}'")
+            else:
+                imported_leaves[leaf] = full
+
         for line in text.splitlines():
             stripped = line.strip()
 
@@ -198,6 +250,35 @@ def main() -> int:
 
             if len(line) > 110:
                 warn(path, f"line longer than 110 characters: {stripped[:60]}...")
+
+    # Members called on a `Principal`. This is the one receiver worth checking by name:
+    # it decides whether a screen shows a moderation control, so a typo here is a
+    # permission bug rather than a rendering one, and the type is small enough to
+    # enumerate exactly. Add a receiver to this map when it has cost you a build.
+    principal_members = members_of(core_files, "Principal") | {
+        "copy", "equals", "hashCode", "toString",
+    }
+    # Extensions the app declares on Principal are members as far as a caller is
+    # concerned -- provided the calling file imports them, which the import check above
+    # already verifies.
+    for path in app_files:
+        for match in re.finditer(
+            r"^(?:internal |public |private )?fun Principal\??\.([A-Za-z_][A-Za-z0-9_]*)",
+            path.read_text(encoding="utf-8"),
+            re.MULTILINE,
+        ):
+            principal_members.add(match.group(1))
+    if principal_members:
+        for path in app_files:
+            text = path.read_text(encoding="utf-8")
+            for match in re.finditer(r"\bprincipal(?:\?)?\.((?:is|can|has)[A-Z][A-Za-z0-9_]*)", text):
+                # Only capability-shaped names. `principal` is often a nullable behind a
+                # `State`, so `.value`, `.let` and friends are legitimate and unresolvable
+                # here; a missing `isX`/`canX` is the case worth catching, because it
+                # decides whether a permission-bearing control is drawn.
+                name = match.group(1)
+                if name not in principal_members:
+                    fail(path, f"calls 'principal.{name}', which Principal does not declare")
 
     # Every composable a navigation graph references must actually exist.
     nav = APP / "ui" / "navigation" / "FiSabilillahNavHost.kt"

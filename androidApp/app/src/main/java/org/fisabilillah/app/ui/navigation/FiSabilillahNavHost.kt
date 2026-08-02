@@ -901,7 +901,7 @@ internal fun FiSabilillahNavHost(
             TrustReviewScreen(
                 verifications = verifications,
                 qualifications = qualifications,
-                canReviewVerifications = principal.canModerate(),
+                canReviewVerifications = principal?.isModerator == true,
                 refusal = refusal,
                 submitting = submitting,
                 onDecideVerification = viewModel::decideVerification,
