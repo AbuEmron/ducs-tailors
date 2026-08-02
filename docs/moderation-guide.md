@@ -420,3 +420,41 @@ A rough order that fits most cases.
 - [`privacy-model.md`](privacy-model.md) — what deletion does not remove, and why
 - [`backend/docs/threat-model.md`](../backend/docs/threat-model.md) — AP-8 insider abuse,
   AP-9 destroying evidence via unsend, AP-10 retaliation against a reporter
+
+---
+
+## Appeals
+
+Every restriction is appealable, and since the appeal screens exist that is now true in the
+product rather than only in this document.
+
+A restricted member finds their restrictions in the safety centre under **Restrictions on
+your account** — reachable at any time, not only from the notification that announced the
+restriction. The reason you recorded is shown to them **verbatim**. Write it accordingly:
+a member told only that they are "restricted from starting conversations" cannot form an
+argument, and the appeal that follows will be a guess at what they are accused of, which
+wastes your time as much as theirs.
+
+Appeals arrive in **Appeals waiting to be read**, linked from the top of the moderation
+queue. Two rules the software enforces rather than trusting you to remember:
+
+- You cannot review an appeal against a decision you took. The queue shows you the appeal
+  and says why the buttons are absent, so you know somebody else has to pick it up.
+- Your reasons are shown to the member in full. Write them as though they are reading
+  them, because they are.
+
+Upholding an appeal lifts the restrictions attached to that case automatically, notifies
+the member, and writes an `APPEAL_DECIDED` entry to the append-only audit log. Rejecting it
+does everything except the lifting.
+
+## Cases nobody reported
+
+Some cases in the queue have no reporter. Those come from the automated content checks —
+see [`safety-signals.md`](safety-signals.md) — and they read differently from a case
+raised by a person:
+
+- Nothing has been done to the account. The checks never restrict.
+- The member has not been told. Do not assume they know they are being looked at.
+- The summary states what was observed and nothing more. It is written not to editorialise,
+  so the absence of a conclusion is not an omission — it is the point. Read the
+  conversation before deciding.
