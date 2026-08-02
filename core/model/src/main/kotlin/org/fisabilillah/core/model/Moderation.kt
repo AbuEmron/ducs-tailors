@@ -289,6 +289,8 @@ public enum class RestrictedCapability(public val displayName: String) {
     UPLOAD_FILES("Uploading files"),
     SUBMIT_REPORTS("Submitting reports"),
     RECEIVE_DONATIONS("Receiving donations"),
+    JOIN_LIVE_SESSIONS("Joining live classes and calls"),
+    HOST_LIVE_SESSIONS("Hosting live classes and calls"),
     ALL("All activity"),
     ;
 
@@ -393,3 +395,14 @@ public enum class SignalConfidence(public val displayName: String) {
     MEDIUM("Medium"),
     HIGH("High"),
 }
+
+/**
+ * Capabilities that can be withdrawn, extended for live rooms.
+ *
+ * Kept here rather than on [RestrictedCapability] itself so the enum stays a single
+ * declaration; see `RestrictedCapability.JOIN_LIVE_SESSIONS` and `HOST_LIVE_SESSIONS`.
+ */
+public val LIVE_SESSION_CAPABILITIES: Set<RestrictedCapability> = setOf(
+    RestrictedCapability.JOIN_LIVE_SESSIONS,
+    RestrictedCapability.HOST_LIVE_SESSIONS,
+)

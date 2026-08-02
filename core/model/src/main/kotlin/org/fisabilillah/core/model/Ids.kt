@@ -164,3 +164,9 @@ public value class SkillId(public val value: String) {
 public value class ConsentRecordId(public val value: String) {
     override fun toString(): String = value
 }
+
+@Serializable
+@JvmInline
+public value class LiveSessionId(public val value: String) {
+    override fun toString(): String = value
+}
