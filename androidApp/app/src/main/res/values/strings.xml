@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fi Sabilillah</string>
+
+    <!--
+      Screen copy is currently written inline in the Compose sources rather than extracted
+      here. That is a deliberate, documented trade-off for the first release and the first
+      thing to change before any localisation work: see docs/architecture.md.
+    -->
+</resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      A minimal platform theme. Everything visual is decided by the Compose theme in
+      ui/theme/Theme.kt; this exists only so the window has sensible colours before the
+      first frame and so the splash does not flash white in dark mode.
+    -->
+    <style name="Theme.FiSabilillah" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:statusBarColor">@color/window_background</item>
+        <item name="android:navigationBarColor">@color/window_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

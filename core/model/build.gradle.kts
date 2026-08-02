@@ -1,0 +1,12 @@
+plugins {
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
+}
+
+dependencies {
+    api(libs.kotlinx.datetime)
+    api(libs.kotlinx.serialization.json)
+
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+}

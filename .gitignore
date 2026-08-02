@@ -1,0 +1,42 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!src/**/build/
+
+# Android
+local.properties
+*.apk
+*.aab
+*.aar
+*.ap_
+*.dex
+captures/
+.cxx/
+output.json
+
+# IDE
+.idea/*
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Environment and secrets — never commit a real one of these
+.env
+.env.local
+.env.*.local
+*.keystore
+*.jks
+!debug.keystore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and scratch
+*.log
+*.hprof
+/tmp/

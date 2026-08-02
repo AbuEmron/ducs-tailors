@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches Sand99 in the Compose light scheme. -->
+    <color name="window_background">#FFFBF3</color>
+    <color name="launcher_background">#1F5747</color>
+</resources>

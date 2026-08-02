@@ -1,0 +1,107 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Shared core (JVM)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # The whole point of keeping the core free of Android: this job needs no SDK, no
+      # emulator, and no access to Google's Maven repository. It runs anywhere a JDK does.
+      - name: Build and test
+        run: ./gradlew build test --stacktrace
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-test-reports
+          path: core/*/build/reports/tests/test
+          if-no-files-found: ignore
+
+  database:
+    name: Database schema and row-level security
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Postgres client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      # Applies every migration in order against a clean database, loads the seed data,
+      # then runs the assertion suite. A policy that silently stops enforcing an invariant
+      # fails here rather than in production.
+      - name: Apply migrations and run the RLS assertions
+        env:
+          PGHOST: localhost
+          PGPORT: "5432"
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: bash backend/supabase/run_local_tests.sh
+
+  android:
+    name: Android client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # This build resolves AndroidX and the Android Gradle Plugin from Google's Maven
+      # repository, which was unreachable in the environment where the UI was written. It
+      # is expected to need fixing on its first successful run — see the status section of
+      # the README.
+      - name: Assemble and unit-test
+        working-directory: androidApp
+        run: ./gradlew assembleDebug testDebugUnitTest --stacktrace
+
+      - name: Upload the debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fi-sabilillah-debug
+          path: androidApp/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: ignore

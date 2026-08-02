@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Nothing is backed up.
+
+  This device holds safeguard settings, guardian arrangements, conversations, and — in the
+  production build — cached tokens. Copying that into a cloud backup the platform does not
+  control is not a trade-off worth making for the convenience of restoring a phone.
+-->
+<full-backup-content>
+    <exclude domain="root" />
+    <exclude domain="database" />
+    <exclude domain="sharedpref" />
+    <exclude domain="file" />
+</full-backup-content>

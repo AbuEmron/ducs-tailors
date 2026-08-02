@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches Ink05 in the Compose dark scheme. -->
+    <color name="window_background">#0C0F0E</color>
+    <color name="launcher_background">#0A3F32</color>
+</resources>
