@@ -67,11 +67,12 @@ internal val FiSabilillahTypography: Typography = Typography(
  * than administrative.
  */
 internal val FiSabilillahShapes: Shapes = Shapes(
+    // The prototype's radius scale, exactly: 10 / 14 / 20 / 28.
     extraSmall = RoundedCornerShape(6.dp),
     small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(22.dp),
-    extraLarge = RoundedCornerShape(30.dp),
+    medium = RoundedCornerShape(14.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(28.dp),
 )
 
 /**
@@ -97,3 +98,46 @@ internal data class Spacing(
     /** Android's accessibility floor for anything tappable. Never go below it. */
     val minimumTouchTarget: androidx.compose.ui.unit.Dp = 48.dp,
 )
+
+/**
+ * # Purposeful Motion
+ *
+ * Durations and easings, held as tokens so that a screen cannot invent its own timing.
+ *
+ * Motion here has one job: to explain a state change. It is never entertainment. There is
+ * no celebratory animation anywhere in this product — a confetti burst when someone
+ * completes an act of service would turn a private matter between a person and their Lord
+ * into a performance, which is the exact instinct this platform is built to avoid.
+ *
+ * Every value is multiplied by zero when the reader has asked the system to reduce motion.
+ * See [Motion.scaled].
+ */
+internal data class Motion(
+    /** A control acknowledging a press. Barely perceptible, and that is the point. */
+    val instant: Int = 90,
+    /** A chip, switch, or badge changing state. */
+    val quick: Int = 140,
+    /** The prototype's own transition: 180ms on a decelerating curve. */
+    val standard: Int = 180,
+    /** A sheet, drawer, or expanding card. */
+    val emphasised: Int = 260,
+    /** A whole-screen transition, or a safeguard indicator settling. */
+    val deliberate: Int = 340,
+
+    /** Whether the reader has asked for reduced motion. Set by the shell from settings. */
+    val reduced: Boolean = false,
+) {
+    /** The duration to actually use. Zero when motion is reduced, so transitions cut. */
+    fun scaled(durationMillis: Int): Int = if (reduced) 0 else durationMillis
+
+    /**
+     * The prototype's easing: `cubic-bezier(.2, .8, .2, 1)`. Decelerating, so a thing
+     * arrives quickly and settles gently rather than sliding to a stop.
+     */
+    val easing: androidx.compose.animation.core.CubicBezierEasing
+        get() = androidx.compose.animation.core.CubicBezierEasing(0.2f, 0.8f, 0.2f, 1f)
+
+    /** For something leaving. Slightly faster than arriving; exits should not linger. */
+    val exitEasing: androidx.compose.animation.core.CubicBezierEasing
+        get() = androidx.compose.animation.core.CubicBezierEasing(0.4f, 0f, 1f, 1f)
+}

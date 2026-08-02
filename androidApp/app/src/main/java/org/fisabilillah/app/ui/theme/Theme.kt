@@ -9,115 +9,172 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.Color
+
+/**
+ * # Amanah Design System — themes
+ *
+ * Three schemes, not two: light, dark, and a genuine high-contrast mode that is a distinct
+ * set of values rather than a filter.
+ *
+ * Dynamic colour is deliberately not offered. Wallpaper-derived palettes would put the
+ * verification mark, the safeguard indicator and the "a moderator is in this conversation"
+ * banner at the mercy of whatever the user's home screen happens to look like, and those
+ * three have to read identically on every device for people to learn to trust them.
+ */
 
 private val LightScheme = lightColorScheme(
-    primary = Sabr40,
+    primary = Ink20,
     onPrimary = White,
-    primaryContainer = Sabr95,
-    onPrimaryContainer = Sabr20,
-    inversePrimary = Sabr80,
+    primaryContainer = Teal90,
+    onPrimaryContainer = Ink20,
+    inversePrimary = Ink80,
 
-    secondary = Sand40,
+    secondary = Teal50,
     onSecondary = White,
-    secondaryContainer = Sand90,
-    onSecondaryContainer = Sand20,
+    secondaryContainer = Teal90,
+    onSecondaryContainer = Teal20,
 
-    tertiary = Dusk40,
+    tertiary = Violet50,
     onTertiary = White,
-    tertiaryContainer = Dusk90,
-    onTertiaryContainer = Dusk20,
+    tertiaryContainer = Violet90,
+    onTertiaryContainer = Violet20,
 
-    error = Error40,
+    error = Crimson40,
     onError = White,
-    errorContainer = Error90,
-    onErrorContainer = Error20,
+    errorContainer = Crimson90,
+    onErrorContainer = Crimson20,
 
-    background = Sand99,
-    onBackground = Ink15,
+    background = Sand95,
+    onBackground = Ink20,
     surface = Sand99,
-    onSurface = Ink15,
-    surfaceVariant = Sand95,
-    onSurfaceVariant = Sand30,
+    onSurface = Ink20,
+    surfaceVariant = Sand90,
+    onSurfaceVariant = Sand50,
     surfaceContainerLowest = White,
     surfaceContainerLow = Sand99,
     surfaceContainer = Sand95,
     surfaceContainerHigh = Sand90,
-    surfaceContainerHighest = Color(0xFFE4DCD1),
+    surfaceContainerHighest = Parchment,
 
-    outline = Sand60,
+    outline = Sand50,
     outlineVariant = Sand80,
-    scrim = Ink05,
+    scrim = Ink00,
     inverseSurface = Ink20,
     inverseOnSurface = Sand95,
 )
 
 private val DarkScheme = darkColorScheme(
-    primary = Sabr80,
-    onPrimary = Sabr20,
-    primaryContainer = Sabr30,
-    onPrimaryContainer = Sabr95,
-    inversePrimary = Sabr40,
+    primary = Ink90,
+    onPrimary = Ink20,
+    primaryContainer = Ink30,
+    onPrimaryContainer = Ink95,
+    inversePrimary = Ink30,
 
-    secondary = Sand80,
-    onSecondary = Sand20,
-    secondaryContainer = Sand30,
-    onSecondaryContainer = Sand90,
+    secondary = Teal80,
+    onSecondary = Teal20,
+    secondaryContainer = Teal30,
+    onSecondaryContainer = Teal95,
 
-    tertiary = Dusk80,
-    onTertiary = Dusk20,
-    tertiaryContainer = Dusk30,
-    onTertiaryContainer = Dusk90,
+    tertiary = Violet80,
+    onTertiary = Violet20,
+    tertiaryContainer = Violet30,
+    onTertiaryContainer = Violet90,
 
-    error = Error80,
-    onError = Error20,
-    errorContainer = Error30,
-    onErrorContainer = Error90,
+    error = Crimson80,
+    onError = Crimson20,
+    errorContainer = Crimson30,
+    onErrorContainer = Crimson90,
 
-    background = Ink05,
-    onBackground = Ink90,
-    surface = Ink05,
-    onSurface = Ink90,
-    surfaceVariant = Ink20,
-    onSurfaceVariant = Ink80,
-    surfaceContainerLowest = Color(0xFF070908),
-    surfaceContainerLow = Ink10,
-    surfaceContainer = Ink15,
-    surfaceContainerHigh = Ink20,
-    surfaceContainerHighest = Ink25,
+    background = Ink10,
+    onBackground = Ink95,
+    surface = Ink10,
+    onSurface = Ink95,
+    surfaceVariant = Sand20,
+    onSurfaceVariant = Sand60,
+    surfaceContainerLowest = Ink00,
+    surfaceContainerLow = Slate10,
+    surfaceContainer = Slate15,
+    surfaceContainerHigh = Sand20,
+    surfaceContainerHighest = Sand30,
 
-    outline = Sand40,
-    outlineVariant = Ink25,
-    scrim = Color(0xFF000000),
-    inverseSurface = Ink90,
-    inverseOnSurface = Ink15,
+    outline = Sand60,
+    outlineVariant = Sand30,
+    scrim = Ink00,
+    inverseSurface = Ink95,
+    inverseOnSurface = Ink20,
 )
 
-internal val LocalSafeguardColors: ProvidableCompositionLocal<SafeguardColors> =
-    staticCompositionLocalOf { LightSafeguardColors }
+/** Every pair here clears 7:1. Used when the reader has asked the system for more contrast. */
+private val HighContrastScheme = lightColorScheme(
+    primary = Ink00,
+    onPrimary = White,
+    primaryContainer = White,
+    onPrimaryContainer = Ink00,
+    secondary = Teal20,
+    onSecondary = White,
+    secondaryContainer = White,
+    onSecondaryContainer = Ink00,
+    tertiary = Violet20,
+    onTertiary = White,
+    tertiaryContainer = White,
+    onTertiaryContainer = Violet20,
+    error = CrimsonInk,
+    onError = White,
+    errorContainer = White,
+    onErrorContainer = CrimsonInk,
+    background = White,
+    onBackground = Ink00,
+    surface = White,
+    onSurface = Ink00,
+    surfaceVariant = White,
+    onSurfaceVariant = Ink00,
+    surfaceContainerLowest = White,
+    surfaceContainerLow = White,
+    surfaceContainer = White,
+    surfaceContainerHigh = White,
+    surfaceContainerHighest = White,
+    outline = Ink00,
+    outlineVariant = Ink00,
+    scrim = Ink00,
+    inverseSurface = Ink00,
+    inverseOnSurface = White,
+)
+
+internal val LocalStatusColors: ProvidableCompositionLocal<StatusColors> =
+    staticCompositionLocalOf { LightStatusColors }
 
 internal val LocalSpacing: ProvidableCompositionLocal<Spacing> =
     staticCompositionLocalOf { Spacing() }
 
+internal val LocalMotion: ProvidableCompositionLocal<Motion> =
+    staticCompositionLocalOf { Motion() }
+
 /**
  * The application theme.
  *
- * Dynamic colour is deliberately not offered. A wallpaper-derived palette would put the
- * verification mark, the safeguard indicator and the "moderator present" banner at the
- * mercy of whatever the user's home screen happens to look like — and those three things
- * have to read the same way on every device for people to learn to trust them.
+ * @param highContrast a separate scheme rather than a modifier over the others.
  */
 @Composable
 internal fun FiSabilillahTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    highContrast: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = if (darkTheme) DarkScheme else LightScheme
-    val safeguardColors = if (darkTheme) DarkSafeguardColors else LightSafeguardColors
+    val colorScheme = when {
+        highContrast -> HighContrastScheme
+        darkTheme -> DarkScheme
+        else -> LightScheme
+    }
+    val statusColors = when {
+        highContrast -> HighContrastStatusColors
+        darkTheme -> DarkStatusColors
+        else -> LightStatusColors
+    }
 
     CompositionLocalProvider(
-        LocalSafeguardColors provides safeguardColors,
+        LocalStatusColors provides statusColors,
         LocalSpacing provides Spacing(),
+        LocalMotion provides Motion(),
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
@@ -128,11 +185,22 @@ internal fun FiSabilillahTheme(
     }
 }
 
-/** Convenience accessors, so screens read `theme.safeguard.verified` rather than a local. */
+/** The Amanah Design System's accessors. */
 internal object FiSabilillahTheme {
-    val safeguard: SafeguardColors
-        @Composable @ReadOnlyComposable get() = LocalSafeguardColors.current
+    /**
+     * Status colours. Named `safeguard` for continuity with the screens that already read
+     * it; the type covers verification, risk, completion, oversight, learning and live
+     * sessions as well.
+     */
+    val safeguard: StatusColors
+        @Composable @ReadOnlyComposable get() = LocalStatusColors.current
+
+    val status: StatusColors
+        @Composable @ReadOnlyComposable get() = LocalStatusColors.current
 
     val spacing: Spacing
         @Composable @ReadOnlyComposable get() = LocalSpacing.current
+
+    val motion: Motion
+        @Composable @ReadOnlyComposable get() = LocalMotion.current
 }
