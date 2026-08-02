@@ -42,6 +42,9 @@ import org.fisabilillah.core.model.ProjectId
 import org.fisabilillah.core.model.ProjectMember
 import org.fisabilillah.core.model.ProjectTask
 import org.fisabilillah.core.model.Qualification
+import org.fisabilillah.core.model.QualificationId
+import org.fisabilillah.core.model.VerificationRequest
+import org.fisabilillah.core.model.VerificationRequestId
 import org.fisabilillah.core.model.Report
 import org.fisabilillah.core.model.ReportId
 import org.fisabilillah.core.model.RequestId
@@ -297,9 +300,25 @@ public interface ConsentRepository {
 }
 
 public interface QualificationRepository {
+    public suspend fun find(id: QualificationId): Qualification?
     public suspend fun forUser(userId: UserId): List<Qualification>
     public suspend fun save(qualification: Qualification): Qualification
     public suspend fun pendingReview(): List<Qualification>
+}
+
+/**
+ * Verification requests.
+ *
+ * Deliberately not folded into [QualificationRepository]. A qualification is a claim about
+ * what somebody can do and is reviewed by whoever knows the subject; a verification request
+ * is a claim about who they are and is reviewed by the safety team. Sharing a table would
+ * mean sharing a policy, and the two need different ones.
+ */
+public interface VerificationRepository {
+    public suspend fun find(id: VerificationRequestId): VerificationRequest?
+    public suspend fun forUser(userId: UserId): List<VerificationRequest>
+    public suspend fun save(request: VerificationRequest): VerificationRequest
+    public suspend fun openRequests(): List<VerificationRequest>
 }
 
 public interface CampaignRepository {

@@ -167,6 +167,12 @@ public value class ConsentRecordId(public val value: String) {
 
 @Serializable
 @JvmInline
+public value class VerificationRequestId(public val value: String) {
+    override fun toString(): String = value
+}
+
+@Serializable
+@JvmInline
 public value class SafetySignalId(public val value: String) {
     override fun toString(): String = value
 }

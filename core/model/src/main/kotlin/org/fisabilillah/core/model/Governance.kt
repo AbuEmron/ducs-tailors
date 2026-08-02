@@ -204,6 +204,88 @@ public data class Qualification(
     override val deletedAt: Timestamp? = null,
 ) : Auditable
 
+/**
+ * A member asking for their identity to be checked.
+ *
+ * Separate from [Qualification], which is a claim about what somebody can *do*. This is a
+ * claim about who they *are*, and the platform treats the two differently: a teaching
+ * certificate is confirmed by a scholar who knows the field, an identity document is
+ * confirmed by a provider whose whole business is documents.
+ *
+ * The evidence is a list of storage references, never the documents themselves and never
+ * a copy of what is on them. A table holding scans of passports is a table worth
+ * attacking; a table holding paths into a private bucket, readable only by a reviewer, is
+ * merely a table.
+ */
+@Serializable
+public data class VerificationRequest(
+    val id: VerificationRequestId,
+    val userId: UserId,
+    /** What the member is asking to be granted. Never what they are asserting they have. */
+    val requestedLevel: VerificationLevel,
+    val method: VerificationMethod,
+    val evidenceRefs: List<String> = emptyList(),
+    val note: String? = null,
+    val state: VerificationRequestState = VerificationRequestState.SUBMITTED,
+    /** Never writable by the requester. Set only by a reviewer. */
+    val reviewedBy: UserId? = null,
+    val reviewedAt: Timestamp? = null,
+    val decisionNote: String? = null,
+    /** Set when a level that was granted is later taken away. */
+    val revokedAt: Timestamp? = null,
+    val revokedBy: UserId? = null,
+    override val createdAt: Timestamp = Instant.EPOCH,
+    override val updatedAt: Timestamp = Instant.EPOCH,
+    override val deletedAt: Timestamp? = null,
+) : Auditable {
+
+    init {
+        require(requestedLevel != VerificationLevel.NONE) {
+            "A request must ask for something above NONE"
+        }
+    }
+
+    public val isOpen: Boolean
+        get() = state == VerificationRequestState.SUBMITTED ||
+            state == VerificationRequestState.UNDER_REVIEW
+
+    public val grantsLevel: Boolean
+        get() = state == VerificationRequestState.APPROVED && revokedAt == null
+}
+
+@Serializable
+public enum class VerificationRequestState(public val displayName: String) {
+    SUBMITTED("Submitted"),
+    UNDER_REVIEW("Under review"),
+    APPROVED("Approved"),
+    REJECTED("Not approved"),
+    WITHDRAWN("Withdrawn"),
+    REVOKED("Revoked"),
+}
+
+/**
+ * How a level was established.
+ *
+ * Recorded because "identity verified" means something different depending on how, and a
+ * member reading somebody's profile is entitled to know which. A document checked by a
+ * provider and a document eyeballed by a volunteer are not the same claim.
+ */
+@Serializable
+public enum class VerificationMethod(
+    public val displayName: String,
+    /** The highest level this method can ever justify on its own. */
+    public val ceiling: VerificationLevel,
+) {
+    EMAIL("Email confirmation", VerificationLevel.EMAIL_VERIFIED),
+    PHONE("Phone confirmation", VerificationLevel.PHONE_VERIFIED),
+    DOCUMENT_PROVIDER("Identity document, checked by a provider", VerificationLevel.IDENTITY_VERIFIED),
+    IN_PERSON_AT_ORGANIZATION(
+        "Seen in person by a verified organisation",
+        VerificationLevel.IDENTITY_VERIFIED,
+    ),
+    BACKGROUND_CHECK_PROVIDER("Background check", VerificationLevel.BACKGROUND_CHECKED),
+}
+
 @Serializable
 public enum class QualificationReviewState(public val displayName: String) {
     SUBMITTED("Submitted"),

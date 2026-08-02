@@ -26,6 +26,11 @@ import org.fisabilillah.core.domain.LapseIntroductionsUseCase
 import org.fisabilillah.core.domain.ListConversationsUseCase
 import org.fisabilillah.core.domain.ManageTrustedContactsUseCase
 import org.fisabilillah.core.domain.AppealQueueUseCase
+import org.fisabilillah.core.domain.DecideVerificationUseCase
+import org.fisabilillah.core.domain.MyVerificationUseCase
+import org.fisabilillah.core.domain.RequestVerificationUseCase
+import org.fisabilillah.core.domain.ReviewQualificationUseCase
+import org.fisabilillah.core.domain.SubmitQualificationUseCase
 import org.fisabilillah.core.domain.ModerationQueueUseCase
 import org.fisabilillah.core.domain.MyModerationRecordUseCase
 import org.fisabilillah.core.domain.OpenIntroductionConversationUseCase
@@ -219,6 +224,7 @@ public class CoreGraph(
     public val consents: InMemoryConsentRepository = InMemoryConsentRepository(store)
     public val qualifications: InMemoryQualificationRepository =
         InMemoryQualificationRepository(store)
+    public val verifications: InMemoryVerificationRepository = InMemoryVerificationRepository(store)
     public val campaigns: InMemoryCampaignRepository = InMemoryCampaignRepository(store)
     public val skills: InMemorySkillRepository = InMemorySkillRepository(store)
 
@@ -299,6 +305,17 @@ public class CoreGraph(
     public val myModerationRecord: MyModerationRecordUseCase =
         MyModerationRecordUseCase(restrictions, moderation, clock)
     public val appealQueue: AppealQueueUseCase = AppealQueueUseCase(moderation)
+
+    public val requestVerification: RequestVerificationUseCase =
+        RequestVerificationUseCase(verifications, profiles, auditLog, ids, clock)
+    public val decideVerification: DecideVerificationUseCase =
+        DecideVerificationUseCase(verifications, profiles, notifications, auditLog, ids, clock)
+    public val myVerification: MyVerificationUseCase =
+        MyVerificationUseCase(verifications, profiles)
+    public val submitQualification: SubmitQualificationUseCase =
+        SubmitQualificationUseCase(qualifications, auditLog, ids, clock)
+    public val reviewQualification: ReviewQualificationUseCase =
+        ReviewQualificationUseCase(qualifications, profiles, notifications, auditLog, ids, clock)
 
     public val homeDigest: HomeDigestUseCase = HomeDigestUseCase(
         profiles, commitments, opportunities, requests, learning, projects, notifications,

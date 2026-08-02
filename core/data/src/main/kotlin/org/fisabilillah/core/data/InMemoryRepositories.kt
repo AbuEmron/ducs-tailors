@@ -24,6 +24,7 @@ import org.fisabilillah.core.domain.PeopleSearchCriteria
 import org.fisabilillah.core.domain.ProfileRepository
 import org.fisabilillah.core.domain.ProjectRepository
 import org.fisabilillah.core.domain.QualificationRepository
+import org.fisabilillah.core.domain.VerificationRepository
 import org.fisabilillah.core.domain.RequestSearchCriteria
 import org.fisabilillah.core.domain.RestrictionRepository
 import org.fisabilillah.core.domain.ServiceRequestRepository
@@ -74,6 +75,9 @@ import org.fisabilillah.core.model.ProjectId
 import org.fisabilillah.core.model.ProjectMember
 import org.fisabilillah.core.model.ProjectTask
 import org.fisabilillah.core.model.Qualification
+import org.fisabilillah.core.model.QualificationId
+import org.fisabilillah.core.model.VerificationRequest
+import org.fisabilillah.core.model.VerificationRequestId
 import org.fisabilillah.core.model.QualificationReviewState
 import org.fisabilillah.core.model.Report
 import org.fisabilillah.core.model.ReportId
@@ -156,6 +160,7 @@ public class InMemoryStore {
     public val notifications: MutableList<Notification> = mutableListOf()
     public val consents: MutableList<ConsentRecord> = mutableListOf()
     public val qualifications: MutableList<Qualification> = mutableListOf()
+    public val verificationRequests: MutableMap<VerificationRequestId, VerificationRequest> = linkedMapOf()
     public val campaigns: MutableMap<CampaignId, Campaign> = linkedMapOf()
     public val skills: MutableMap<SkillId, Skill> = linkedMapOf()
 
@@ -970,8 +975,31 @@ public class InMemoryConsentRepository(private val store: InMemoryStore) : Conse
         }
 }
 
+public class InMemoryVerificationRepository(private val store: InMemoryStore) :
+    VerificationRepository {
+
+    override suspend fun find(id: VerificationRequestId): VerificationRequest? =
+        store.mutex.withLock { store.verificationRequests[id] }
+
+    override suspend fun forUser(userId: UserId): List<VerificationRequest> =
+        store.mutex.withLock { store.verificationRequests.values.filter { it.userId == userId } }
+
+    override suspend fun save(request: VerificationRequest): VerificationRequest =
+        store.mutex.withLock {
+            store.verificationRequests[request.id] = request
+            store.touch()
+            request
+        }
+
+    override suspend fun openRequests(): List<VerificationRequest> =
+        store.mutex.withLock { store.verificationRequests.values.filter { it.isOpen } }
+}
+
 public class InMemoryQualificationRepository(private val store: InMemoryStore) :
     QualificationRepository {
+
+    override suspend fun find(id: QualificationId): Qualification? =
+        store.mutex.withLock { store.qualifications.firstOrNull { it.id == id } }
 
     override suspend fun forUser(userId: UserId): List<Qualification> =
         store.mutex.withLock { store.qualifications.filter { it.userId == userId } }
