@@ -812,4 +812,143 @@ end;
 $$;
 
 \echo ''
+\echo '### 16. Registration: a real auth account becoming a member'
+begin;
+-- The auth row is created before the role switch: `authenticated` has SELECT
+-- on auth.users and nothing more, which is exactly the point.
+insert into auth.users (id, email, email_confirmed_at)
+values ('99999999-0000-4000-8000-000000000001', 'newcomer@example.test', null);
+
+set local role authenticated;
+set local request.jwt.claim.sub = '99999999-0000-4000-8000-000000000001';
+do $$
+declare
+  v_uid uuid := '99999999-0000-4000-8000-000000000001';
+begin
+  perform test.ok(
+    (select not has_profile from public.current_member()),
+    'a signed-in account with no profile reports has_profile false');
+
+  perform test.ok(
+    (select email_confirmed = false from public.current_member()),
+    'and reports its address as unconfirmed');
+
+  -- The hole 0016 closes: self-insert is permitted, self-elevation is not.
+  perform test.denied($q$
+    insert into public.profiles (id, display_name, contact_email, gender, verification_level)
+    values ('99999999-0000-4000-8000-000000000001', 'Sneaky', 'sneaky@example.test',
+            'male', 'scholar_verified')
+  $q$, 'a member cannot insert their own profile already verified');
+
+  perform test.ok(
+    (select public.register_member('Yahya T.', 'male', p_accept_covenant => true)) = v_uid,
+    'register_member returns the auth id, never a caller-supplied one');
+
+  perform test.ok(
+    test.scalar_text($q$select contact_email::text from public.profiles
+                        where id = '99999999-0000-4000-8000-000000000001'$q$)
+      = 'newcomer@example.test',
+    'the profile takes its address from auth.users');
+
+  perform test.ok(
+    test.scalar_text($q$select verification_level::text from public.profiles
+                        where id = '99999999-0000-4000-8000-000000000001'$q$) = 'unverified',
+    'a brand new member is unverified');
+
+  perform test.ok(
+    test.count_of($q$select 1 from public.user_settings
+                      where user_id = '99999999-0000-4000-8000-000000000001'$q$) = 1,
+    'registration creates the settings row');
+
+  perform test.ok(
+    test.count_of($q$select 1 from public.user_safeguards
+                      where user_id = '99999999-0000-4000-8000-000000000001'
+                        and require_purpose_for_contact$q$) = 1,
+    'registration creates safeguards with purpose-bound contact already on');
+
+  perform test.ok(
+    (select role_keys = array['member'] from public.current_member()),
+    'registration grants the member role and nothing else');
+
+  perform test.denied(
+    $q$select public.register_member('Yahya Again', 'male')$q$,
+    'register_member refuses to run twice for the same account');
+
+  perform test.denied($q$
+    update public.profiles set gender = 'female'
+     where id = '99999999-0000-4000-8000-000000000001'
+  $q$, 'a member cannot change their own gender after registration');
+
+  perform test.allowed($q$
+    update public.profiles set display_name = 'Yahya Talib'
+     where id = '99999999-0000-4000-8000-000000000001'
+  $q$, 'but may still edit the rest of their profile');
+end;
+$$;
+rollback;
+
+\echo ''
+\echo '### 17. Confirming the address earns basic verification, the ordinary way'
+begin;
+insert into auth.users (id, email, email_confirmed_at)
+values ('99999999-0000-4000-8000-000000000002', 'confirmer@example.test', null);
+
+set local role authenticated;
+set local request.jwt.claim.sub = '99999999-0000-4000-8000-000000000002';
+do $$
+begin
+  perform public.register_member('Sumayya K.', 'female', p_accept_covenant => true);
+end;
+$$;
+
+-- GoTrue writes this column when the member follows the link in their mail.
+reset role;
+update auth.users set email_confirmed_at = now()
+ where id = '99999999-0000-4000-8000-000000000002';
+
+set local role authenticated;
+set local request.jwt.claim.sub = '99999999-0000-4000-8000-000000000002';
+do $$
+begin
+  perform test.ok(
+    test.scalar_text($q$select verification_level::text from public.profiles
+                        where id = '99999999-0000-4000-8000-000000000002'$q$) = 'basic',
+    'confirming the address lifts the profile to basic');
+
+  perform test.ok(
+    test.count_of($q$select 1 from public.user_verifications
+                      where user_id = '99999999-0000-4000-8000-000000000002'
+                        and method = 'email' and status = 'verified'
+                        and reviewed_by is null$q$) = 1,
+    'and it is recorded as a verification row with no human reviewer claimed');
+
+  perform test.ok(
+    test.count_of($q$select 1 from public.user_verifications
+                      where user_id = '99999999-0000-4000-8000-000000000002'$q$) = 1,
+    'a second confirmation would not duplicate it');
+
+  perform test.denied($q$
+    insert into public.user_verifications (user_id, level, status, method, verified_at)
+    values ('99999999-0000-4000-8000-000000000002', 'scholar_verified', 'verified',
+            'email', now())
+  $q$, 'the machine-confirmed exemption does not let a member write a scholar level');
+end;
+$$;
+rollback;
+
+\echo ''
+\echo '### 18. register_member is not reachable without a signed-in account'
+begin;
+set local role anon;
+do $$
+begin
+  perform test.denied($q$select public.register_member('Nobody', 'male')$q$,
+    'anon cannot register a member');
+  perform test.denied($q$select 1 from public.current_member()$q$,
+    'and current_member() is not even executable without a session');
+end;
+$$;
+rollback;
+
+\echo ''
 \echo '### all assertions completed'

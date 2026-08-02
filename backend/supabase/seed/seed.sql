@@ -47,7 +47,10 @@ insert into public.roles (key, display_name, description, is_privileged) values
   ('scholar',        'Scholar',        'Listed teacher: may attest qualifications and zakat.', true),
   ('moderator',      'Moderator',      'Safety team: handles reports and moderation cases.',   true),
   ('platform_admin', 'Platform Admin', 'Full administrative authority, including role grants.',true),
-  ('safeguarding_lead','Safeguarding Lead','Handles youth and vulnerable-adult incidents.',    true);
+  ('safeguarding_lead','Safeguarding Lead','Handles youth and vulnerable-adult incidents.',    true)
+-- Migration 0016 inserts the same rows, because a live deployment needs its
+-- roles whether or not anyone ever runs the demonstration seed.
+on conflict (key) do nothing;
 
 insert into public.skills (slug, name, category, description) values
   ('arabic-language',      'Arabic Language',        'teaching',   'Classical and conversational Arabic.'),
@@ -104,7 +107,8 @@ insert into public.safeguard_presets (slug, name, description, settings, is_defa
      '{"allow_unsolicited_contact":false,"block_media_from_strangers":true}'::jsonb, false),
   ('youth-supervised', 'Supervised (under 18)',
      'A guardian is notified of every new contact; introductions are disabled entirely.',
-     '{"is_minor_supervised":true,"require_wali_for_introductions":true}'::jsonb, false);
+     '{"is_minor_supervised":true,"require_wali_for_introductions":true}'::jsonb, false)
+on conflict (slug) do nothing;
 
 -- ---------------------------------------------------------------------
 -- Profiles
