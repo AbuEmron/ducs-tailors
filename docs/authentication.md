@@ -7,6 +7,40 @@ Before this, `SessionManager` picked a seeded profile out of a list. Every one o
 row-level security policies in the database is written against `auth.uid()`, and nothing
 produced one. That is now closed.
 
+
+## Where the confirmation link goes
+
+GoTrue verifies the token in the link and *then* redirects the browser. Those are two
+separate things, and the second one failing looks exactly like the first one failing.
+
+On a fresh project the redirect target is the Site URL, which defaults to
+`http://localhost:3000`. A phone cannot load that, so somebody who has just confirmed their
+address successfully sees "this site can't be reached" and concludes it did not work. The
+natural next move — sign up again — issues a fresh token and **invalidates the link they
+were sent**, so the second attempt fails for real. That sequence is visible in the auth log
+of the first real account created on this project: 403 `One-time token not found` on the
+first link, then a 303 success on the second.
+
+The fix has two halves, and both are needed:
+
+**In the app.** `SupabaseConfig.emailRedirectTo` is set to `fisabilillah://auth/confirmed`
+and is appended as `?redirect_to=` on sign-up, password recovery and resend. The manifest
+already claims the `fisabilillah` scheme, and `Routes.EMAIL_CONFIRMED` declares a
+`navDeepLink` so the app opens on a screen that says the address is confirmed rather than
+wherever it happened to be.
+
+**On the project.** The value has to be listed under **Authentication → URL Configuration →
+Redirect URLs**. GoTrue will not redirect anywhere that is not on that list; it silently
+falls back to the Site URL instead, which is the behaviour that caused this in the first
+place. Setting the Site URL itself to the same value is a reasonable belt-and-braces.
+
+Three tests in `SupabaseAuthGatewayTest` pin the client half: that the redirect is
+percent-encoded into the query on sign-up, that recovery and resend carry it too, and that
+a config without one produces a bare `/signup` URL rather than a malformed query.
+
+None of them prove the round trip, because nothing in this repository can reach
+`*.supabase.co`. The evidence that it works will be somebody clicking a link.
+
 ---
 
 ## 1. The pieces

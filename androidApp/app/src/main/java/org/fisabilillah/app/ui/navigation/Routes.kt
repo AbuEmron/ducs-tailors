@@ -24,6 +24,18 @@ internal object Routes {
     const val SIGN_UP = "sign-up"
     const val ACCOUNT_RECOVERY = "account-recovery"
 
+    /**
+     * Where the confirmation link lands.
+     *
+     * Reached from a browser rather than from inside the app: GoTrue verifies the token
+     * and then redirects here, and the manifest's `fisabilillah` intent filter hands it
+     * over. Without this the redirect goes to the project's Site URL, which on a fresh
+     * project is `http://localhost:3000` — a page a phone cannot load, so a confirmation
+     * that in fact succeeded looks exactly like one that failed.
+     */
+    const val EMAIL_CONFIRMED = "auth/confirmed"
+    const val EMAIL_CONFIRMED_URI = "fisabilillah://auth/confirmed"
+
     // Onboarding
     const val ONBOARDING_PROFILE = "onboarding/profile"
     const val ONBOARDING_SKILLS = "onboarding/skills"

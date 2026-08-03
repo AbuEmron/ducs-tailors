@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.fisabilillah.app.BuildConfig
 import org.fisabilillah.app.session.KeystoreSessionStore
+import org.fisabilillah.app.ui.navigation.Routes
 import org.fisabilillah.core.auth.AuthFailure
 import org.fisabilillah.core.auth.AuthResult
 import org.fisabilillah.core.auth.MemberIdentity
@@ -71,6 +72,11 @@ internal class AppGraph private constructor(
             val config = SupabaseConfig(
                 projectUrl = BuildConfig.SUPABASE_URL,
                 publishableKey = BuildConfig.SUPABASE_PUBLISHABLE_KEY,
+                // Must also be listed under Authentication -> URL Configuration ->
+                // Redirect URLs on the Supabase project. If it is not, GoTrue ignores it
+                // and falls back to the Site URL, which is where the dead
+                // "couldn't be reached" page came from.
+                emailRedirectTo = Routes.EMAIL_CONFIRMED_URI,
             )
             val members = MemberSession(
                 gateway = SupabaseAuthGateway(config),

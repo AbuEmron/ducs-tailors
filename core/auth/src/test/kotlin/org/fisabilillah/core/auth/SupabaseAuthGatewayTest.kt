@@ -181,4 +181,65 @@ class SupabaseAuthGatewayTest {
                 .exceptionOrNull(),
         )
     }
+
+    // -----------------------------------------------------------------
+    // Where the confirmation link sends people afterwards.
+    //
+    // These exist because of a real failure: with no redirect configured,
+    // GoTrue verified the address correctly and then sent the phone's
+    // browser to the project's default Site URL -- http://localhost:3000
+    // -- which showed "couldn't be reached". The account worked. Every
+    // visible signal said it had not.
+    // -----------------------------------------------------------------
+
+    @Test
+    @DisplayName("the confirmation link is pointed back at the app when one is configured")
+    fun signUpCarriesTheRedirect() = runTest {
+        val transport = FakeTransport.always(200, """{"user":{"id":"${Fixtures.USER_ID}"}}""")
+        val configured = SupabaseAuthGateway(
+            Fixtures.config.copy(emailRedirectTo = "fisabilillah://auth/confirmed"),
+            transport,
+            FixedClock(NOW),
+        )
+
+        configured.signUp("new@example.test", "a-long-enough-password")
+
+        val sent = transport.sent.single()
+        assertTrue(
+            sent.url.contains("redirect_to=fisabilillah%3A%2F%2Fauth%2Fconfirmed"),
+            "the redirect must be percent-encoded into the query: ${sent.url}",
+        )
+    }
+
+    @Test
+    @DisplayName("password recovery and resend carry it too")
+    fun theOtherMailsCarryTheRedirect() = runTest {
+        val configured = { transport: FakeTransport ->
+            SupabaseAuthGateway(
+                Fixtures.config.copy(emailRedirectTo = "fisabilillah://auth/confirmed"),
+                transport,
+                FixedClock(NOW),
+            )
+        }
+
+        val recovery = FakeTransport.always(200, "{}")
+        configured(recovery).sendRecoveryEmail("someone@example.test")
+        assertTrue(recovery.sent.single().url.contains("redirect_to="))
+
+        // A person who has forgotten their password and then lands on a browser error has
+        // been failed twice in a row.
+        val resend = FakeTransport.always(200, "{}")
+        configured(resend).resendConfirmation("someone@example.test")
+        assertTrue(resend.sent.single().url.contains("redirect_to="))
+    }
+
+    @Test
+    @DisplayName("with no redirect configured the URL is left exactly as it was")
+    fun noRedirectMeansNoQuery() = runTest {
+        val transport = FakeTransport.always(200, """{"user":{"id":"${Fixtures.USER_ID}"}}""")
+        gateway(transport).signUp("new@example.test", "a-long-enough-password")
+
+        val url = transport.sent.single().url
+        assertTrue(url.endsWith("/signup"), "expected a bare signup URL, got $url")
+    }
 }

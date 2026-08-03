@@ -66,7 +66,7 @@ public class SupabaseAuthGateway(
         }
 
         val response = post(
-            path = "signup",
+            path = "signup" + config.redirectQuery(),
             body = buildJsonObject {
                 put("email", normalised)
                 put("password", password)
@@ -157,10 +157,12 @@ public class SupabaseAuthGateway(
     }
 
     override suspend fun sendRecoveryEmail(email: String): AuthResult<Unit> =
-        fireAndForget("recover", email)
+        fireAndForget("recover" + config.redirectQuery(), email)
 
+    // The redirect matters here too. A person who has forgotten their password and lands
+    // on a browser error has been failed twice in a row.
     override suspend fun resendConfirmation(email: String): AuthResult<Unit> =
-        fireAndForget("resend", email, extra = { put("type", "signup") })
+        fireAndForget("resend" + config.redirectQuery(), email, extra = { put("type", "signup") })
 
     /**
      * For the two endpoints whose answer must not depend on whether the address exists.

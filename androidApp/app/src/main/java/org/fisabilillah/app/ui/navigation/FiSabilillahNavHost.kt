@@ -17,6 +17,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navDeepLink
 import kotlinx.coroutines.launch
 import org.fisabilillah.app.di.AppGraph
 import org.fisabilillah.app.di.SignInResult
@@ -44,6 +45,7 @@ import org.fisabilillah.app.ui.screens.moderation.AdminDashboardScreen
 import org.fisabilillah.app.ui.screens.moderation.ModerationCaseScreen
 import org.fisabilillah.app.ui.screens.moderation.ModeratorDashboardScreen
 import org.fisabilillah.app.ui.screens.onboarding.AccountRecoveryScreen
+import org.fisabilillah.app.ui.screens.onboarding.EmailConfirmedScreen
 import org.fisabilillah.app.ui.screens.onboarding.LandingScreen
 import org.fisabilillah.app.ui.screens.onboarding.MissionScreen
 import org.fisabilillah.app.ui.screens.onboarding.OnboardingConsentScreen
@@ -212,6 +214,22 @@ internal fun FiSabilillahNavHost(
 
         composable(Routes.MISSION) {
             MissionScreen(onBack = { navController.popBackStack() })
+        }
+
+        // Entered from a browser after GoTrue has verified the confirmation link. The
+        // deep link has to be declared here as well as in the manifest: the manifest gets
+        // the app opened, and this is what decides where in it the person lands.
+        composable(
+            route = Routes.EMAIL_CONFIRMED,
+            deepLinks = listOf(navDeepLink { uriPattern = Routes.EMAIL_CONFIRMED_URI }),
+        ) {
+            EmailConfirmedScreen(
+                onContinue = {
+                    navController.navigate(Routes.SIGN_IN) {
+                        popUpTo(Routes.EMAIL_CONFIRMED) { inclusive = true }
+                    }
+                },
+            )
         }
 
         composable(Routes.SIGN_IN) {

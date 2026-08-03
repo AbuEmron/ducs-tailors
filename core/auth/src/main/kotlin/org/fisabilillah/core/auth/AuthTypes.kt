@@ -21,6 +21,19 @@ public data class SupabaseConfig(
     val projectUrl: String,
     /** The publishable (`sb_publishable_…`) or legacy anon key. Safe to ship. */
     val publishableKey: String,
+    /**
+     * Where GoTrue sends the browser after it has verified a confirmation link.
+     *
+     * Null means "whatever the project's Site URL says", which on a fresh project is
+     * `http://localhost:3000` — a page a phone cannot load. The confirmation itself still
+     * succeeds, because verification happens before the redirect, but the person is left
+     * looking at a browser error and reasonably concludes it failed.
+     *
+     * A custom scheme rather than an https URL, so that no web page has to exist for this
+     * to work. **The value must also be listed under Authentication → URL Configuration →
+     * Redirect URLs on the project**, or GoTrue ignores it and falls back to the Site URL.
+     */
+    val emailRedirectTo: String? = null,
 ) {
     init {
         require(projectUrl.startsWith("https://")) {
@@ -33,7 +46,21 @@ public data class SupabaseConfig(
         }
     }
 
+    init {
+        require(emailRedirectTo == null || !emailRedirectTo.contains(' ')) {
+            "The email redirect must be a single URL"
+        }
+    }
+
     internal val authUrl: String get() = "$projectUrl/auth/v1"
+
+    /** `?redirect_to=…`, or empty when the project default should be used. */
+    internal fun redirectQuery(existingQuery: Boolean = false): String {
+        val target = emailRedirectTo ?: return ""
+        val separator = if (existingQuery) "&" else "?"
+        return separator + "redirect_to=" +
+            java.net.URLEncoder.encode(target, Charsets.UTF_8.name())
+    }
     internal val restUrl: String get() = "$projectUrl/rest/v1"
 }
 
