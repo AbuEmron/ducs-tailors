@@ -17,6 +17,10 @@ jobs:
   apk:
     name: Build APK
     runs-on: ubuntu-latest
+    # Needed only by the release step below, which is what makes the APK
+    # downloadable without a GitHub login.
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +56,11 @@ jobs:
             echo "| Size | $(du -h "$APK" | cut -f1) |"
             echo "| Commit | \`${GITHUB_SHA:0:8}\` |"
             echo ""
-            echo "Download it from the **fi-sabilillah-debug-apk** artifact below."
+            echo "Download it from the **fi-sabilillah-debug-apk** artifact below,"
+            echo "or from the rolling \`debug-latest\` pre-release, which needs no login:"
+            echo ""
+            echo "<https://github.com/${GITHUB_REPOSITORY}/releases/tag/debug-latest>"
+            echo ""
             echo "It is signed with the standard Android debug key, so you will need to"
             echo "allow installation from unknown sources on the device."
           } >> "$GITHUB_STEP_SUMMARY"
@@ -64,6 +72,38 @@ jobs:
           path: androidApp/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
+
+      # A rolling pre-release rather than a versioned one.
+      #
+      # An Actions artifact is a zip that expires in thirty days and needs a
+      # GitHub login to fetch, which makes "send me the APK" harder than it
+      # should be. A release asset is a direct link that anybody can click and
+      # that does not expire. The tag is deliberately fixed: this is always
+      # "the latest debug build of this branch", never a version, and marking
+      # it prerelease keeps it out of the way of any real release later.
+      - name: Publish the APK as a rolling pre-release
+        if: github.ref == 'refs/heads/claude/fi-sabilillah-platform-77mzgf'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          APK=$(find androidApp/app/build/outputs/apk/debug -name '*.apk' | head -1)
+          cp "$APK" "fi-sabilillah-debug-${GITHUB_SHA:0:8}.apk"
+
+          # Recreated each time so the tag always points at the commit that
+          # produced the binary attached to it. A release whose tag and asset
+          # disagree is worse than no release.
+          gh release delete debug-latest --yes --cleanup-tag || true
+          gh release create debug-latest \
+            --title "Debug build (${GITHUB_SHA:0:8})" \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --notes "Unsigned-for-store debug build of \`${GITHUB_SHA:0:8}\`, built by CI.
+
+          Signed with the standard Android debug key: allow installation from unknown sources to install it.
+
+          **This has never been run by anybody.** It compiles and it has no automated UI tests. Payments reach Stripe only once the function secrets are set -- see \`docs/payments.md\`." \
+            "fi-sabilillah-debug-${GITHUB_SHA:0:8}.apk"
 
       - name: Upload build reports on failure
         if: failure()
