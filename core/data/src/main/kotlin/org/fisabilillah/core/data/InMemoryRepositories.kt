@@ -167,6 +167,8 @@ public class InMemoryStore {
     public val endorsements: MutableList<TaskEndorsement> = mutableListOf()
     public val deviceSessions: MutableMap<String, DeviceSession> = linkedMapOf()
     public val campaigns: MutableMap<CampaignId, Campaign> = linkedMapOf()
+    public val donations: MutableMap<org.fisabilillah.core.model.DonationId,
+        org.fisabilillah.core.model.Donation> = linkedMapOf()
     public val skills: MutableMap<SkillId, Skill> = linkedMapOf()
 
     /** Bumped on every write so the observable flows below re-emit. */
@@ -1067,6 +1069,39 @@ public class InMemoryCampaignRepository(private val store: InMemoryStore) : Camp
 
     override suspend fun forOrganization(id: OrganizationId): List<Campaign> =
         store.mutex.withLock { store.campaigns.values.filter { it.organizationId == id } }
+}
+
+/**
+ * Donation records.
+ *
+ * The fixture keeps every state a real donation can be in, including the abandoned ones.
+ * That matters for the screens: a list that silently drops `AWAITING_PAYMENT` rows looks
+ * tidy and hides the case where somebody believes they gave and did not.
+ */
+public class InMemoryDonationRepository(
+    private val store: InMemoryStore,
+) : org.fisabilillah.core.domain.DonationRepository {
+    override suspend fun find(
+        id: org.fisabilillah.core.model.DonationId,
+    ): org.fisabilillah.core.model.Donation? = store.mutex.withLock { store.donations[id] }
+
+    override suspend fun save(
+        donation: org.fisabilillah.core.model.Donation,
+    ): org.fisabilillah.core.model.Donation = store.mutex.withLock {
+        store.donations[donation.id] = donation
+        store.touch()
+        donation
+    }
+
+    override suspend fun forDonor(
+        donorId: UserId,
+    ): List<org.fisabilillah.core.model.Donation> =
+        store.mutex.withLock { store.donations.values.filter { it.donorId == donorId } }
+
+    override suspend fun forCampaign(
+        campaignId: CampaignId,
+    ): List<org.fisabilillah.core.model.Donation> =
+        store.mutex.withLock { store.donations.values.filter { it.campaignId == campaignId } }
 }
 
 public class InMemorySkillRepository(private val store: InMemoryStore) : SkillRepository {

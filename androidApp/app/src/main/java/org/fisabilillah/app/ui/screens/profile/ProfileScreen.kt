@@ -49,6 +49,7 @@ internal fun ProfileScreen(
     onTrustedContacts: () -> Unit,
     onWaliSettings: () -> Unit,
     onServiceHistory: () -> Unit,
+    onGiving: () -> Unit,
     onCommitments: () -> Unit,
     onVerification: () -> Unit,
     onQualifications: () -> Unit,
@@ -212,6 +213,13 @@ internal fun ProfileScreen(
                 description = "Check in when you arrive, and confirm the people helping " +
                     "with what you organise.",
                 onClick = onCommitments,
+            )
+
+            SettingRow(
+                title = "Giving",
+                description = "Appeals that are collecting, and a record of what you have " +
+                    "given. Payment is taken on the processor's own page, never in the app.",
+                onClick = onGiving,
             )
 
             SettingRow(

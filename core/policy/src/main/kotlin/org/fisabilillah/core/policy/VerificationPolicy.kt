@@ -111,18 +111,19 @@ public object VerificationPolicy {
     /**
      * Whether an organisation may be shown as able to receive funds.
      *
-     * Note the deliberate combination: verification alone is not enough while the payments
-     * flag is off, because showing a "donate" affordance that cannot take money is a way of
-     * collecting intent the platform has no legal ability to honour.
+     * Registration is the whole of the test here, and it is checked at the moment of
+     * asking rather than remembered from when the campaign was approved — organisation
+     * verification carries an expiry date, and a lapsed one has to stop the money the same
+     * day it lapses rather than the next time somebody reviews the account.
+     *
+     * A campaign has its own further gate on top of this one; see
+     * `Campaign.canAcceptDonations`. Both must hold. That is not redundancy: this answers
+     * "may this body receive money at all", the other answers "may this particular appeal
+     * collect it".
      */
     public fun canOfferDonations(organization: Organization): GivingAvailability = when {
-        !DonationFeatureFlags.paymentsEnabled ->
-            GivingAvailability.Preview(DonationFeatureFlags.disabledNotice)
-
         !organization.verification.registrationChecked ->
-            GivingAvailability.Unavailable(
-                "This organisation has not completed verification.",
-            )
+            GivingAvailability.Unavailable(DonationFeatureFlags.unverifiedNotice)
 
         else -> GivingAvailability.Available
     }

@@ -18,7 +18,9 @@ import org.fisabilillah.core.auth.MemberSessionState
 import org.fisabilillah.core.auth.SignUpOutcome
 import org.fisabilillah.core.auth.SupabaseAuthGateway
 import org.fisabilillah.core.auth.SupabaseConfig
+import org.fisabilillah.core.auth.JdkHttpTransport
 import org.fisabilillah.core.auth.SupabaseMemberDirectory
+import org.fisabilillah.core.payments.SupabaseCheckoutGateway
 import org.fisabilillah.core.data.CoreGraph
 import org.fisabilillah.core.data.SeedData
 import org.fisabilillah.core.data.SystemClock
@@ -66,9 +68,6 @@ internal class AppGraph private constructor(
             }
 
         private fun create(context: Context): AppGraph {
-            val core = CoreGraph(clock = SystemClock(), ids = UuidIdGenerator())
-            SeedData.populate(core.store)
-
             val config = SupabaseConfig(
                 projectUrl = BuildConfig.SUPABASE_URL,
                 publishableKey = BuildConfig.SUPABASE_PUBLISHABLE_KEY,
@@ -78,6 +77,25 @@ internal class AppGraph private constructor(
                 directory = SupabaseMemberDirectory(config),
                 store = KeystoreSessionStore(context),
             )
+
+            // Giving is the one part of the app that already reaches a server for
+            // something other than authentication, and it has to: the Stripe key lives in
+            // an edge function, and a key that reached this APK would be a published key.
+            // The token is fetched per call rather than held, so a checkout started on a
+            // screen that has been open a while still carries a live session.
+            val payments = SupabaseCheckoutGateway(
+                config = config,
+                transport = JdkHttpTransport(),
+                accessToken = { members.accessToken() },
+            )
+
+            val core = CoreGraph(
+                clock = SystemClock(),
+                ids = UuidIdGenerator(),
+                payments = payments,
+            )
+            SeedData.populate(core.store)
+
             return AppGraph(core, SessionManager(core, members))
         }
     }

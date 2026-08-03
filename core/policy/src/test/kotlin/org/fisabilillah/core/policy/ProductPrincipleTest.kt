@@ -2,6 +2,13 @@ package org.fisabilillah.core.policy
 
 import org.fisabilillah.core.model.AccountRole
 import org.fisabilillah.core.model.ContactPurposeKind
+import org.fisabilillah.core.model.Campaign
+import org.fisabilillah.core.model.CampaignId
+import org.fisabilillah.core.model.CampaignStatus
+import org.fisabilillah.core.model.CampaignVerification
+import org.fisabilillah.core.model.FundType
+import org.fisabilillah.core.model.Money
+import org.fisabilillah.core.model.OrganizationId
 import org.fisabilillah.core.model.DonationFeatureFlags
 import org.fisabilillah.core.model.NotificationKind
 import org.fisabilillah.core.model.Profile
@@ -10,6 +17,7 @@ import org.fisabilillah.core.model.TrustLabel
 import org.fisabilillah.core.model.TrustRecord
 import org.fisabilillah.core.model.VisibleProfile
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
@@ -154,14 +162,45 @@ class ProductPrincipleTest {
     }
 
     @Test
-    @DisplayName("payments stay disabled until the compliance work is finished")
-    fun givingIsBehindAFlag() {
+    @DisplayName("a campaign cannot take money before somebody has verified it")
+    fun givingRequiresVerification() {
+        // This replaces an older guard that asserted one global flag was false. A global
+        // flag was the wrong shape: it made "may money move" a property of the build
+        // rather than of the campaign, so flipping it switched on every campaign at once,
+        // including ones nobody had checked. The invariant that matters is narrower and is
+        // enforced by the type itself.
+        val unverified = campaignFixture(CampaignVerification.PENDING)
+        assertFalse(unverified.canAcceptDonations)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            unverified.copy(paymentsEnabled = true)
+        }
+
+        val verified = campaignFixture(CampaignVerification.VERIFIED)
         assertFalse(
-            DonationFeatureFlags.paymentsEnabled,
-            "Turning this on is not a code change alone — see docs/payment-compliance.md.",
+            verified.canAcceptDonations,
+            "Verification alone must not be enough: an administrator still has to enable it.",
         )
+        assertTrue(verified.copy(paymentsEnabled = true).canAcceptDonations)
+
+        // Regular giving is still off, and for reasons that are not about compliance
+        // paperwork — see the flag's own comment.
         assertFalse(DonationFeatureFlags.recurringEnabled)
-        assertTrue(DonationFeatureFlags.disabledNotice.contains("not authorised"))
+        assertThrows(IllegalArgumentException::class.java) {
+            verified.copy(allowsRecurring = true)
+        }
+    }
+
+    @Test
+    @DisplayName("the donor is told the processor takes a fee")
+    fun feeIsDisclosed() {
+        // A donor who believes every penny arrives has been misled by omission, and the
+        // omission is the easy thing to ship.
+        assertTrue(DonationFeatureFlags.feeNotice.contains("fee"))
+        assertTrue(
+            DonationFeatureFlags.feeNotice.contains("no platform fee", ignoreCase = true),
+            "If a platform fee is ever introduced, this copy has to change with it.",
+        )
     }
 
     @Test
@@ -172,7 +211,8 @@ class ProductPrincipleTest {
         val safetyCopy = listOf(
             ContentSignals.DISCLOSURE,
             IntroductionPolicy.RELIGIOUS_GUIDANCE_NOTICE,
-            DonationFeatureFlags.disabledNotice,
+            DonationFeatureFlags.unverifiedNotice,
+            DonationFeatureFlags.feeNotice,
         )
         val overclaims = listOf("guarantee", "guaranteed", "completely safe", "fitnah-free", "risk-free")
         for (copy in safetyCopy) {
@@ -215,4 +255,18 @@ class ProductPrincipleTest {
             viewerFields.filter { it.contains("history") },
         )
     }
+
+    /** The smallest campaign that satisfies the type. Nothing here is under test. */
+    private fun campaignFixture(verification: CampaignVerification): Campaign = Campaign(
+        id = CampaignId("campaign-fixture"),
+        organizationId = OrganizationId("org-fixture"),
+        title = "Winter food parcels",
+        summary = "Parcels for families in the area over winter.",
+        fundType = FundType.SADAQAH,
+        goal = Money(500_000, "GBP"),
+        raised = Money.zero("GBP"),
+        currencyCode = "GBP",
+        verification = verification,
+        status = CampaignStatus.ACTIVE,
+    )
 }

@@ -8,20 +8,20 @@ completion status.*
 The specification requires this matrix to exist before any visual polish begins, and
 requires it to confirm that no original feature has been lost. **It does not confirm that.**
 
-Of 304 rows: 157 are **Implemented and tested**, 107 are **Implemented, untested** (62 of
-those are Android screens that have never compiled), 21 are **Model and UI only**, 3 are
-**Behind feature flag**, and **16 are Not implemented**. The 16 are collected in [What is
+Of 316 rows: 167 are **Implemented and tested**, 109 are **Implemented, untested** (62 of
+those are Android screens that have never been run), 21 are **Model and UI only**, 2 are
+**Behind feature flag**, and **17 are Not implemented**. The 17 are collected in [What is
 genuinely missing](#what-is-genuinely-missing) rather than scattered where they are easy to
 miss, and most of them are marked **Deliberate** — a decision recorded, not a gap left.
 
 | Status | §1–17 features | §18 screens | Total |
 | --- | --- | --- | --- |
-| Implemented and tested | 157 | 0 | **157** |
-| Implemented, untested | 45 | 62 | **107** |
+| Implemented and tested | 167 | 0 | **167** |
+| Implemented, untested | 47 | 62 | **109** |
 | Model and UI only (no transport/provider) | 21 | 0 | **21** |
-| Behind feature flag | 3 | 0 | **3** |
-| Not implemented | 12 | 4 | **16** |
-| **Total** | **238** | **66** | **304** |
+| Behind feature flag | 2 | 0 | **2** |
+| Not implemented | 13 | 4 | **17** |
+| **Total** | **250** | **66** | **316** |
 
 These counts are produced by reading the tables below, not by hand.
 
@@ -54,8 +54,8 @@ Two things every row shares and neither column repeats:
 
 | Suite | Command | Result |
 | --- | --- | --- |
-| Shared core, JVM | `./gradlew test` | **303 tests, all passing** — `:core:policy` 149, `:core:data` 128, `:core:auth` 26 |
-| Database, row-level security | `backend/supabase/run_local_tests.sh` | **130 assertions passed**, on a throwaway PostgreSQL 16 cluster with the whole migration set applied |
+| Shared core, JVM | `./gradlew test` | **326 tests, all passing** — `:core:policy` 150, `:core:data` 141, `:core:auth` 26, `:core:payments` 9 |
+| Database, row-level security | `backend/supabase/run_local_tests.sh` | **150 assertions passed**, on a throwaway PostgreSQL 16 cluster with the whole migration set applied |
 | Android instrumentation or unit | — | **none; the module has never compiled locally** |
 
 The Kotlin figures are read from `core/*/build/test-results/test/*.xml`; the database figure
@@ -280,13 +280,24 @@ gated by `LiveSessionFeatureFlags.transportConfigured = false`.
 
 | Feature | Screen | Component | Roles | Data entity | Permission / safeguard rule | Test | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Payments switched off in code | `GivingComplianceScreen` | `DonationFeatureFlags.paymentsEnabled = false` | all | `campaigns` (`check (payments_enabled = false)`) | No card, token or bank field exists anywhere | `payments stay disabled until the compliance work is finished` (`ProductPrincipleTest`); `the verified campaign still cannot take a payment` (`SeedDataTest`) | Behind feature flag |
-| Campaign model with fund types and verification tiers | — | `Campaign`, `FundType`, `CampaignVerification` | charity, masjid | `campaigns`, `campaign_verifications` | An organisation cannot attest to itself (`FORCE`) | RLS suite | Implemented, untested |
-| Zakat eligibility requires a recorded attestation from a qualified body | — | `Campaign.init`, `VerificationPolicy.zakatEligibilityFor` | charity, scholar | `campaigns.zakat_eligible` (trigger-guarded) | The platform records the attestation; it does not make the ruling | `a campaign is never zakat eligible without a recorded attestation`; `marking a campaign zakat eligible without an attestation is rejected outright` (`VerificationPolicyTest`) | Implemented and tested |
-| Giving shown as preview rather than as a broken donate button | `GivingComplianceScreen` | `VerificationPolicy.canOfferDonations` → `GivingAvailability.Preview` | all | — | Collecting intent the platform cannot honour is itself a harm | `giving stays in preview while payments are switched off` (`VerificationPolicyTest`) | Behind feature flag |
-| Anonymous donations stay anonymous even from the recipient | — | `Donation.anonymous` | donor, charity | `donations` | Org admins read non-anonymous rows only (`FORCE`) | RLS suite | Implemented, untested |
-| Campaign list, detail and donate screens | — | — | all | `campaigns` | — | — | Not implemented *(no route, no screen, no view model; the only giving surface is the legal explanation page)* |
-| Payment provider integration | — | — | — | — | — | — | Not implemented — see [`payment-compliance.md`](payment-compliance.md) |
+| Payments gated per campaign, not per build | `GivingComplianceScreen`, `DonateScreen` | `Campaign.paymentsEnabled`, `app.campaign_may_collect()`, `trg_campaigns_guard_payments` | platform admin | `campaigns.payments_enabled` | Verified campaign at a currently verified organisation; administrator only; reason recorded | `a campaign cannot take money before somebody has verified it` (`ProductPrincipleTest`); `only a platform administrator can allow a campaign to collect`, `an administrator cannot switch on a campaign that was never verified` (`GivingTest`); rls_tests §22 | Implemented and tested |
+| Verification checked at the moment of giving, so a lapse stops collection that day | — | `app.campaign_may_collect()`, `DonateUseCase.refusalFor` | all | `organization_verifications`, `campaign_verifications` | Expiry and revocation are read from the verification rows, not from the summary column | `an organisation whose registration has lapsed stops collecting immediately` (`GivingTest`); `a lapsed organisation verification stops collection immediately` (rls_tests §22) | Implemented and tested |
+| Hosted checkout — card details never reach the app | `DonateScreen` | `SupabaseCheckoutGateway`, `donation-checkout` | all | `donations` | No Stripe key, host or request in the client; a non-https checkout URL is refused | `nothing about Stripe appears in the request`, `a page that is not https is refused however the server phrased it` (`SupabaseCheckoutGatewayTest`) | Implemented and tested |
+| The client decides only a campaign and an amount | `DonateScreen` | `DonateUseCase.Command` | all | `campaigns` | Currency, recipient and donor derived server-side | `the currency comes from the campaign rather than from the caller` (`GivingTest`); `the request carries no currency, donor or fee` (`SupabaseCheckoutGatewayTest`) | Implemented and tested |
+| A donation is settled only by a signed webhook | — | `stripe-webhook`, `payment_events` | — | `donations`, `payment_events` | HMAC-SHA256 over the raw body, constant-time compare, 300s tolerance; client INSERT/UPDATE/DELETE revoked | `a started donation is never recorded as settled` (`GivingTest`); `a member cannot record a donation they say they made`, `nor promote somebody else's donation to settled` (rls_tests §21) | Implemented, untested *(the signature check has never verified a real Stripe signature)* |
+| Webhook replays and out-of-order delivery are safe | — | `payment_events` primary key, `donations_provider_session_uniq` | — | `payment_events` | Stripe's own event id is the lock; the ledger row is deleted if settlement fails, so the retry is not swallowed | `one processor session can only ever settle one donation` (rls_tests §23) | Implemented, untested |
+| A campaign total counts settled money only, and comes back down on a refund | `CampaignsScreen` | `app.recount_campaign_total()` | all | `campaigns.recorded_total` | Recomputed from rows rather than incremented | `an unpaid donation does not move the total`, `settling it does`, `and refunding it takes it back off again` (rls_tests §23) | Implemented and tested |
+| Donation floor and ceiling | `DonateScreen` | `GivingLimits`, re-checked in `donation-checkout` | all | — | Floor: the fee would eat a tiny gift. Ceiling: AML checks that do not exist yet | `an amount below the floor or above the ceiling is refused and records nothing` (`GivingTest`) | Implemented and tested |
+| The processor's fee is disclosed before the amount is chosen | `DonateScreen` | `DonationFeatureFlags.feeNotice` | all | — | `netAmount` is null until settlement and is never estimated | `the donor is told the processor takes a fee` (`ProductPrincipleTest`) | Implemented and tested |
+| Campaign model with fund types and verification tiers | `CampaignsScreen` | `Campaign`, `FundType`, `CampaignVerification` | charity, masjid | `campaigns`, `campaign_verifications` | An organisation cannot attest to itself (`FORCE`) | RLS suite | Implemented, untested |
+| Zakat eligibility requires a recorded attestation from a qualified body | `DonateScreen` | `Campaign.init`, `VerificationPolicy.zakatEligibilityFor` | charity, scholar | `campaigns.zakat_eligible` (trigger-guarded) | The platform records the attestation; it does not make the ruling | `a campaign is never zakat eligible without a recorded attestation`; `marking a campaign zakat eligible without an attestation is rejected outright` (`VerificationPolicyTest`) | Implemented and tested |
+| An unverified organisation is never offered as able to receive funds | `DonateScreen` | `VerificationPolicy.canOfferDonations` | all | `organization_verifications` | — | `an unverified organisation cannot be offered as able to receive funds` (`SafeguardAndVisibilityTest`) | Implemented and tested |
+| Anonymous donations stay anonymous even from the recipient | `DonateScreen` | `Donation.anonymous` | donor, charity | `donations` | Org admins read non-anonymous rows only (`FORCE`); anonymous is the default choice | `a donor sees their own giving and nobody else's` (`GivingTest`); rls_tests §21 | Implemented and tested |
+| A donor's own record, including abandoned attempts | `MyGivingScreen` | `MyDonationsUseCase`, `public.my_donations` view | donor | `donations` | `security_invoker`, so the view cannot become a way round the policies | `a donor sees their own giving through the view` (rls_tests §21) | Implemented and tested |
+| Campaign list, detail and donate screens | `CampaignsScreen`, `DonateScreen`, `MyGivingScreen` | `GivingViewModel` | all | `campaigns`, `donations` | Ordered by closing date, never by amount raised | — | Implemented, untested |
+| Recurring giving | — | `DonationFeatureFlags.recurringEnabled = false` | — | — | `Campaign.init` and `Donation.init` both throw if set | `a campaign cannot take money before somebody has verified it` (`ProductPrincipleTest`) | Behind feature flag |
+| Gift Aid declarations and receipts | — | — | — | — | — | — | Not implemented *(Stripe emails its own receipt; a Gift Aid declaration is a separate legal artefact and no capture exists)* |
+| Refunds initiated from inside the platform | — | — | — | `donations` | A refund arriving from Stripe is honoured; none can be started here | — | Not implemented |
 
 ## 11. Trust and verification
 
@@ -492,11 +503,11 @@ one is a case where shipping the feature would be worse than not having it.
 | --- | --- | --- |
 | 1 | **The content layer still talks to `InMemoryStore`.** Authentication reaches Supabase; opportunities, requests, conversations, classes, projects and communities do not, so the 162 row-level security policies still guard nothing the app reads. | Supabase-backed implementations of the repository interfaces in `core/domain/.../Repositories.kt`. The ports were designed for this and do not need to change; `core:auth` already supplies the authenticated token every call will need. This is infrastructure work rather than product work, and it is the single largest remaining item. |
 | 2 | **Live-session media transport.** The domain model, the safeguard gating and the interface are complete and tested; no audio or video can be carried. | **Deliberate.** See the checklist in [`live-sessions.md`](live-sessions.md). Seven items, of which the abuse-reporting path for live audio and the legal position on recording per jurisdiction are the two that cannot be engineered around. `LiveSessionFeatureFlags.transportConfigured` stays false until they are answered. |
-| 3 | **Donations and payments.** Campaigns are readable; nothing takes money. | **Deliberate.** See [`payment-compliance.md`](payment-compliance.md). Taking donations needs a payment provider, charity-registration checks, and a position on zakat eligibility that is a scholarly question rather than an engineering one. |
+| 3 | **A donation has never actually been taken.** Stripe is wired end to end and no payment has passed through it. | The mechanism is built and tested — see [`payments.md`](payments.md) — but four things remain that cannot be done from a repository: the function secrets, the Stripe webhook endpoint, a verified organisation and campaign, and a test-mode donation observed end to end. The compliance checklist in [`payment-compliance.md`](payment-compliance.md) is unchanged by any of this. |
 | 4 | **Youth participation and age assurance.** | **Deliberate.** See [`child-safety.md`](child-safety.md). It will not open until guardian consent, verified-organisation-only activities and background checks on the adults involved are all in place. Opening it sooner would put a feature ahead of children's safety. |
 | 5 | **Document and image upload.** Verification evidence, qualification documents and profile photographs are all stored as references with no upload path and no storage bucket. | A storage bucket with per-object policies, an upload path, and a decision about scanning. The reference plumbing is in place at both ends. |
 | 6 | **Nothing drives the scheduler.** `RunScheduledMaintenanceUseCase` exists, is tested and archives conversations and lapses introductions — but no cron, worker or edge function calls it. | A scheduled trigger in the deployment. Deliberately not the client: neither expiry should depend on a member opening the app. |
-| 7 | **Campaign creation and donation screens.** | Follows item 3. The models and RLS policies exist. |
+| 7 | **Campaign creation, Gift Aid, and platform-initiated refunds.** Campaigns are created only by the seed; a refund arriving from Stripe is honoured but none can be started here. | A use case and screens for the first, which follows organisation creation in item 8. Gift Aid is a legal artefact rather than a form field and needs the declaration wording settled first. |
 | 8 | **Organisation creation and verification.** Organisations are readable and are created only by the seed. | A use case and screens, plus a document-review path that follows item 5. |
 | 9 | **No people-browsing surface.** | **Deliberate**, per the "no browse surface" principle — `SearchPeopleUseCase` exists and is reachable only from a profile you already have a reason to open. Recorded as a decision rather than an omission. |
 

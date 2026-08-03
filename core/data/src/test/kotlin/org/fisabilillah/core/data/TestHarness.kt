@@ -22,12 +22,15 @@ import org.fisabilillah.core.domain.Outcome
  */
 internal class Harness(
     now: Timestamp = SeedData.EPOCH,
+    payments: org.fisabilillah.core.domain.PaymentGateway =
+        org.fisabilillah.core.domain.NoPaymentProcessor,
 ) {
     val clock: FixedClock = FixedClock(now, year = 2026)
     val graph: CoreGraph = CoreGraph(
         store = InMemoryStore(),
         clock = clock,
         ids = SequentialIdGenerator("t"),
+        payments = payments,
     )
     val store: InMemoryStore get() = graph.store
 

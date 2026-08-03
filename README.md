@@ -193,12 +193,19 @@ the environment this was built in cannot reach `*.supabase.co`, so `core:auth` i
 against a fake transport and the server half is tested by SQL. See
 [`docs/authentication.md`](docs/authentication.md).
 
-### Payments are disabled
+### Payments are wired up, and no payment has ever been taken
 
-`DonationFeatureFlags.paymentsEnabled` is `false` and `Campaign.canAcceptDonations` reads it
-directly. The data model and the giving UX exist; no money can move. The checklist that must
-be complete before the flag is flipped is in
-[`docs/payment-compliance.md`](docs/payment-compliance.md).
+Giving goes through Stripe hosted checkout: the app receives a URL and opens it in the
+browser, card details never touch this application, and the only thing that can mark a
+donation settled is a signed webhook. No client session can write to `donations` at all.
+
+Whether money may move is a property of one verified campaign rather than of the build —
+`app.campaign_may_collect()`, evaluated at the moment of giving so that a lapsed
+verification stops collection the same day. See [`docs/payments.md`](docs/payments.md).
+
+Nothing in this repository has reached Stripe. Four things must be done by hand before a
+real donation is possible, listed at the end of that document, and the compliance checklist
+in [`docs/payment-compliance.md`](docs/payment-compliance.md) is unchanged by any of this.
 
 ### Screen copy is inline
 

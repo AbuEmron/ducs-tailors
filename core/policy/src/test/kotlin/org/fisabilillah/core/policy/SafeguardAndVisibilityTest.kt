@@ -395,7 +395,7 @@ class VerificationPolicyTest {
     }
 
     @Test
-    fun `giving stays in preview while payments are switched off`() {
+    fun `an unverified organisation cannot be offered as able to receive funds`() {
         val organization = org.fisabilillah.core.model.Organization(
             id = org.fisabilillah.core.model.OrganizationId("org"),
             name = "Verified Relief",
@@ -407,10 +407,19 @@ class VerificationPolicyTest {
             ),
             status = org.fisabilillah.core.model.OrganizationStatus.ACTIVE,
         )
-        val availability = VerificationPolicy.canOfferDonations(organization)
         assertTrue(
-            availability is GivingAvailability.Preview,
-            "payments must stay behind the flag until compliance work is complete",
+            VerificationPolicy.canOfferDonations(organization) is GivingAvailability.Available,
+            "a charity whose registration has been checked may be shown as able to receive",
+        )
+
+        val unchecked = organization.copy(
+            verification = org.fisabilillah.core.model.OrganizationVerification(
+                registrationChecked = false,
+            ),
+        )
+        assertTrue(
+            VerificationPolicy.canOfferDonations(unchecked) is GivingAvailability.Unavailable,
+            "money must never be offered to an organisation nobody has verified",
         )
     }
 

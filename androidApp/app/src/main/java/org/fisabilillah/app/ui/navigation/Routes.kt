@@ -84,6 +84,11 @@ internal object Routes {
     const val MY_QUALIFICATIONS = "trust/qualifications"
     const val TRUST_REVIEW = "moderation/trust"
 
+    // Giving
+    const val CAMPAIGNS = "giving"
+    const val DONATE = "giving/campaign/{id}"
+    const val MY_GIVING = "giving/mine"
+
     // Commitments
     const val MY_COMMITMENTS = "commitments"
     const val ENDORSE = "commitments/endorse/{id}"
@@ -119,8 +124,8 @@ internal object Routes {
     fun report(targetType: String, targetId: String): String = "report/$targetType/$targetId"
     fun moderationCase(id: String): String = "moderation/case/$id"
     fun submitAppeal(caseId: String): String = "safety/appeal/$caseId"
-    fun reviewAppeal(id: String): String = "moderation/appeal/$id"
     fun endorse(commitmentId: String): String = "commitments/endorse/$commitmentId"
+    fun donate(campaignId: String): String = "giving/campaign/$campaignId"
 }
 
 /**

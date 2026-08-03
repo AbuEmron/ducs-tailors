@@ -6,8 +6,8 @@ Two suites exist and both pass.
 
 | Suite | How to run it | Result |
 | --- | --- | --- |
-| Shared core, JVM | `./gradlew test` from the repository root | **303 tests, all passing** |
-| Database, row-level security | `backend/supabase/run_local_tests.sh` | **130 assertions, all passing** |
+| Shared core, JVM | `./gradlew test` from the repository root | **326 tests, all passing** |
+| Database, row-level security | `backend/supabase/run_local_tests.sh` | **150 assertions, all passing** |
 
 There is a third thing that still does not exist: the Android module has no test run. It
 compiles now — CI assembles a debug APK — but nothing exercises it. See [What is not
@@ -40,7 +40,7 @@ Kotlin JVM plugin.
 | | `VisibilityPolicyTest` | 6 |
 | | `TrustPolicyTest` | 5 |
 | | `LiveSessionPolicyTest` (three nested groups) | 28 |
-| | **subtotal** | **149** |
+| | **subtotal** | **150** |
 | `:core:data` | `CriticalFlowsTest` | 25 |
 | | `AuthoringAndAdministrationTest` | 22 |
 | | `VerificationTest` | 18 |
@@ -52,12 +52,15 @@ Kotlin JVM plugin.
 | | `MessagingBehaviourTest` | 5 |
 | | `SafetySignalsReachTheQueueTest` | 5 |
 | | `SafeguardsAreEnforcedTest` | 4 |
+| | `GivingTest` | 13 |
 | | `SafeguardFloorScopeTest` | 3 |
-| | **subtotal** | **128** |
+| | **subtotal** | **141** |
 | `:core:auth` | `SupabaseAuthGatewayTest` | 14 |
 | | `MemberSessionTest` | 12 |
 | | **subtotal** | **26** |
-| | **total** | **303** |
+| `:core:payments` | `SupabaseCheckoutGatewayTest` | 9 |
+| | **subtotal** | **9** |
+| | **total** | **326** |
 
 The counts are taken from `core/*/build/test-results/test/*.xml`, which is where to re-read
 them rather than trusting this table after a change.
@@ -190,7 +193,7 @@ Requires PostgreSQL 16 locally. The script:
 2. Drops and recreates a throwaway database (`fisabilillah_test` by default).
 3. Applies `tests/00_bootstrap.sql`, the local-only `auth.*` shim that recreates on plain
    PostgreSQL what Supabase provides. **Never apply this to a Supabase project.**
-4. Applies all eighteen migrations in filename order, printing `ok` or `failed` per file.
+4. Applies all nineteen migrations in filename order, printing `ok` or `failed` per file.
 5. Applies `seed/seed.sql`.
 6. Runs `tests/rls_tests.sql` and counts `PASS:` and `FAIL:` lines.
 
@@ -200,7 +203,7 @@ real PostgreSQL 16:
 ```
 PASS: schema summary -- 59 tables, 162 policies
 ---------------------------------------------------------------
-RESULT: PASS  (130 assertions passed)
+RESULT: PASS  (150 assertions passed)
 ```
 
 These are authorisation tests, not schema tests: they set a session's `auth.uid()` and check

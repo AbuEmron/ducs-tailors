@@ -277,7 +277,8 @@ Several core concepts have a direct counterpart in the schema, and it is worth k
 | `ServiceRequest.place.exact` | `service_request_private_details`, readable by the requester, the accepted helper, and moderators |
 | `MessageRedaction` | `message_redactions`, moderator-only and append-only |
 | `AuditLogEntry` | `audit_logs`, no UPDATE or DELETE policy and the privilege revoked |
-| `DonationFeatureFlags.paymentsEnabled` | `check (payments_enabled = false)` on campaigns |
+| `Campaign.paymentsEnabled` | `trg_campaigns_guard_payments` — platform administrator only, and only onto a campaign with a current financial review at a currently verified organisation |
+| `DonateUseCase` writes only `AWAITING_PAYMENT` | INSERT, UPDATE and DELETE on `donations` revoked from every client role; only the webhook's service role can settle one |
 
 ## What is deliberately absent from the architecture
 
@@ -304,5 +305,7 @@ Repeated here so that nobody reads this document alone and forms the wrong impre
   Authentication is the exception: it reaches the live Supabase project.
 - **Authentication has never completed a live round trip from Kotlin.** `core:auth` is
   tested against a fake transport; the build environment cannot reach `*.supabase.co`.
-- **Payments are off** behind `DonationFeatureFlags.paymentsEnabled = false`.
+- **Payments are real but unproven.** Stripe is wired up through two edge functions and no
+  payment has ever been taken — see [`payments.md`](payments.md). Recurring giving is still
+  off.
 - **Screen copy is inline** in the Compose sources rather than in `strings.xml`.

@@ -368,31 +368,56 @@ internal fun CommunityGuidelinesScreen(onBack: () -> Unit) {
 internal fun GivingComplianceScreen(onBack: () -> Unit) {
     LegalScaffold(title = "Giving", onBack = onBack) {
         PlaceholderNotice(
-            "A working draft describing why giving is switched off and what has to be true " +
-                "before it is switched on. It requires review by a charity lawyer and by a " +
-                "payments compliance specialist before launch."
+            "A working draft describing how giving works and what has to be true before any " +
+                "campaign is allowed to collect. It requires review by a charity lawyer and " +
+                "by a payments compliance specialist before launch."
         )
 
         DisclaimerCard(
-            title = "Payments are disabled",
-            text = DonationFeatureFlags.disabledNotice,
+            title = "Most campaigns cannot take money",
+            text = DonationFeatureFlags.unverifiedNotice,
         )
 
-        Heading("What is switched off, and how")
+        Heading("Where your card details go")
         Body(
-            "Payment processing sits behind a feature flag in the shared core, and the flag " +
-                "is off. Campaigns can be created and viewed so that organisations can be " +
-                "prepared and so the flow can be reviewed, but no payment method is offered, " +
-                "no card details are collected, and any donation recorded in this build is " +
-                "marked as a sandbox record in which no money moved."
-        )
-        Body(
-            "Turning the flag on is deliberately not a code change alone. Every item below " +
-                "has to be complete first, and each is a separate piece of work with a " +
-                "separate owner."
+            "Nowhere near this app. Payment is taken on the payment processor's own page, " +
+                "opened in your browser so that you can see the address of the site you are " +
+                "paying. No card number, expiry or security code is ever typed into this " +
+                "application, and none is stored by it."
         )
 
-        Heading("What must be completed first")
+        Heading("Which appeals can collect")
+        Body(
+            "An appeal can take money only when two separate things are currently true: the " +
+                "organisation behind it holds a verification that has not expired or been " +
+                "withdrawn, and the appeal itself has passed a financial review. Both are " +
+                "checked at the moment you give rather than remembered from when the appeal " +
+                "was approved, so an organisation whose registration lapses stops collecting " +
+                "that day."
+        )
+        Body(
+            "The organisation running an appeal cannot switch this on for itself. Only a " +
+                "platform administrator can, they must record a reason, and the decision is " +
+                "written to a permanent log."
+        )
+
+        Heading("What is taken out")
+        Body(DonationFeatureFlags.feeNotice)
+
+        Heading("What is still not offered")
+        Body(
+            "Regular monthly giving. Setting up a standing arrangement needs a cancellation " +
+                "route you can find without asking anyone, and a clear answer about what " +
+                "happens to a monthly gift when the appeal it was for closes. Until both " +
+                "exist, every donation here is a single one."
+        )
+
+        Heading("What must be completed before launch")
+        Body(
+            "The mechanism being built does not mean the obligations below are met. Each is " +
+                "a separate piece of work with a separate owner."
+        )
+
         Requirement(
             "Charity registration",
             "The platform, or the entity receiving funds through it, must be a registered " +

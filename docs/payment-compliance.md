@@ -1,53 +1,66 @@
 # Payment compliance
 
-## Payments are off
+## Payments are on, one campaign at a time
+
+**This document was written when payments were off entirely, behind a single compile-time
+flag. That flag is gone.** Stripe is wired up; the mechanism is described in
+[`payments.md`](payments.md). Nothing below is thereby discharged — the checklist is what it
+always was, and most of it is organisational rather than technical.
+
+What changed is the shape of the switch, and the change was a narrowing rather than a
+widening:
 
 ```kotlin
-public object DonationFeatureFlags {
-    public const val paymentsEnabled: Boolean = false
-    public const val recurringEnabled: Boolean = false
-}
+// Gone. A property of the build, false for every campaign at once.
+public const val paymentsEnabled: Boolean = false
+
+// What replaces it: a property of one campaign, set by an administrator,
+// rejected by the database unless that campaign and its organisation are
+// both currently verified.
+val paymentsEnabled: Boolean = false   // on Campaign
 ```
 
-`core/model/src/main/kotlin/org/fisabilillah/core/model/Giving.kt`.
+A global flag was the wrong instrument. Flipping it would have switched on every campaign
+simultaneously, including ones nobody had looked at, and the moment it was flipped the
+verification state of any individual appeal stopped mattering. The per-campaign gate cannot
+be flipped that way: `app.campaign_may_collect()` is evaluated at the moment of giving and
+requires a current organisation verification *and* a current campaign financial review, so a
+lapse stops the money the same day it happens.
 
-`Campaign.canAcceptDonations` reads the flag directly, so a campaign that is active,
-verified, and run by a fully registered charity still cannot take a payment. The database
-enforces the same thing independently with `check (payments_enabled = false)` on campaigns. A
-test asserts it: *"the verified campaign still cannot take a payment."*
+The properties the old flag was chosen for are preserved, and one is added:
 
-The data model is complete. Campaigns, fund types, donations, recurring flags, anonymity,
-restricted-fund notes, receipts, refunds and disputes all exist as types. **No money can
-move.**
+| Property | Old flag | Now |
+| --- | --- | --- |
+| Cannot be flipped by configuration | ✔ compile-time constant | ✔ database trigger, platform administrator only |
+| Cannot be flipped by accident | ✔ code change and release | ✔ requires a written reason, written to the audit log |
+| Cannot be flipped by an administrator alone | ✔ | ✔ verification must exist first |
+| Stops automatically when verification lapses | ✘ nothing to lapse | ✔ checked at give-time |
 
-While the flag is off, `VerificationPolicy.canOfferDonations` returns a preview state
-regardless of how well verified an organisation is, showing:
-
-> "Giving is in preview. You can see how campaigns will work, but no payment can be taken
-> yet: the platform is not authorised to handle charitable funds until its registration, tax
-> and anti-fraud checks are complete."
-
-That combination is deliberate. Showing a donate affordance that cannot take money is a way
-of collecting intent the platform has no legal ability to honour.
+`VerificationPolicy.canOfferDonations` no longer returns a preview state for everyone. It
+returns `Unavailable` for an organisation whose registration has not been checked, and
+`Available` for one whose has. The old preview copy — *"the platform is not authorised to
+handle charitable funds"* — has been retired, because leaving it in place while money can in
+fact move would have made it a lie.
 
 ---
 
-## Why the flag exists rather than a "to do" ticket
+## Why the gate is in the database rather than in a ticket
 
 Handling other people's sadaqah and zakat is not something to improvise. The failure modes
 are not bugs; they are a family's zakat going somewhere it should not have gone, a fraudulent
 campaign running for three weeks before anyone notices, and a platform that has taken money
 it is not registered to solicit.
 
-A compile-time constant is the right shape for this because it cannot be flipped by
-configuration, by an administrator, or by accident. Turning it on is a code change, a review,
-and a release — which is proportionate to what it authorises.
+The gate lives in a trigger and a `SECURITY DEFINER` function because those are the only
+places a client cannot reach and an application bug cannot bypass. A check in the Kotlin
+model is a courtesy to the screen; a check in `trg_campaigns_guard_payments` is the one that
+holds when somebody calls the REST API directly.
 
 ---
 
 ## The checklist
 
-**Every box must be ticked before `paymentsEnabled` is set to `true`.** Not most of them. Not
+**Every box must be ticked before a campaign is switched on for real donors.** Not most of them. Not
 "we will do that in the next sprint". This is a gate, and the reason it is written as a gate
 is that every item on it is easier to do before money moves than after.
 

@@ -48,6 +48,7 @@ includeBuild("..") {
         substitute(module("org.fisabilillah:core-auth")).using(project(":core:auth"))
         substitute(module("org.fisabilillah:core-domain")).using(project(":core:domain"))
         substitute(module("org.fisabilillah:core-data")).using(project(":core:data"))
+        substitute(module("org.fisabilillah:core-payments")).using(project(":core:payments"))
     }
 }
 

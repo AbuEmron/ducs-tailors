@@ -30,6 +30,11 @@ import org.fisabilillah.core.domain.SubmitQualificationUseCase
 import org.fisabilillah.core.domain.SubmitReportUseCase
 import org.fisabilillah.core.domain.TakeModerationActionUseCase
 import org.fisabilillah.core.model.AccountRole
+import org.fisabilillah.core.domain.DonateUseCase
+import org.fisabilillah.core.domain.MyDonationsUseCase
+import org.fisabilillah.core.model.Campaign
+import org.fisabilillah.core.model.CampaignId
+import org.fisabilillah.core.model.CampaignStatus
 import org.fisabilillah.core.model.Commitment
 import org.fisabilillah.core.model.CommitmentId
 import org.fisabilillah.core.model.CommitmentSubject
@@ -1396,6 +1401,89 @@ internal class AccountDataViewModel(
                 is Outcome.Invalid -> _refusal.value = outcome.errors.first().message
             }
         }
+    }
+}
+
+/**
+ * Giving.
+ *
+ * The one thing worth noticing here: [checkoutUrl] is a one-shot signal, cleared as soon
+ * as the screen has acted on it. A URL left in state is a URL that reopens the payment
+ * page every time the screen recomposes, which on a donation flow means a donor who
+ * pressed back finds themselves being asked to pay again.
+ */
+internal class GivingViewModel(
+    private val graph: AppGraph,
+    private val principal: Principal,
+) : ViewModel() {
+
+    private val _campaigns = MutableStateFlow<List<Campaign>>(emptyList())
+    val campaigns: StateFlow<List<Campaign>> = _campaigns.asStateFlow()
+
+    private val _mine = MutableStateFlow<List<MyDonationsUseCase.Line>>(emptyList())
+    val mine: StateFlow<List<MyDonationsUseCase.Line>> = _mine.asStateFlow()
+
+    private val _loading = MutableStateFlow(true)
+    val loading: StateFlow<Boolean> = _loading.asStateFlow()
+
+    private val _submitting = MutableStateFlow(false)
+    val submitting: StateFlow<Boolean> = _submitting.asStateFlow()
+
+    private val _errors = MutableStateFlow<List<ValidationError>>(emptyList())
+    val errors: StateFlow<List<ValidationError>> = _errors.asStateFlow()
+
+    private val _refusal = MutableStateFlow<String?>(null)
+    val refusal: StateFlow<String?> = _refusal.asStateFlow()
+
+    private val _checkoutUrl = MutableStateFlow<String?>(null)
+    val checkoutUrl: StateFlow<String?> = _checkoutUrl.asStateFlow()
+
+    init { refresh() }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _campaigns.value = graph.core.campaigns.list().items
+                .filter { it.status == CampaignStatus.ACTIVE }
+                .sortedBy { it.endsAt }
+            _mine.value = graph.core.myDonations(principal).valueOr(emptyList())
+            _loading.value = false
+        }
+    }
+
+    suspend fun campaign(id: CampaignId): Campaign? = graph.core.campaigns.find(id)
+
+    suspend fun organizationName(campaign: Campaign): String? =
+        graph.core.organizations.find(campaign.organizationId)?.name
+
+    fun give(campaignId: CampaignId, amountMinorUnits: Long, anonymous: Boolean) {
+        viewModelScope.launch {
+            _submitting.value = true
+            _errors.value = emptyList()
+            _refusal.value = null
+
+            val outcome = graph.core.donate(
+                principal,
+                DonateUseCase.Command(
+                    campaignId = campaignId,
+                    amountMinorUnits = amountMinorUnits,
+                    anonymous = anonymous,
+                ),
+            )
+            _submitting.value = false
+
+            when (outcome) {
+                is Outcome.Success -> _checkoutUrl.value = outcome.value.url
+                is Outcome.Invalid -> _errors.value = outcome.errors
+                is Outcome.Refused -> _refusal.value = outcome.message
+                is Outcome.NotFound -> _refusal.value = "We could not find ${outcome.what}."
+            }
+            refresh()
+        }
+    }
+
+    /** Called once the browser has been opened, so returning here does not reopen it. */
+    fun checkoutOpened() {
+        _checkoutUrl.value = null
     }
 }
 

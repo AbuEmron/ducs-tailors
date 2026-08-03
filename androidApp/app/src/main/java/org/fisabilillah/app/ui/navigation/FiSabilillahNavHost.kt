@@ -1,5 +1,9 @@
 package org.fisabilillah.app.ui.navigation
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -23,6 +27,9 @@ import org.fisabilillah.app.ui.screens.community.CommunityDetailScreen
 import org.fisabilillah.app.ui.screens.community.CommunityScreen
 import org.fisabilillah.app.ui.screens.community.MemberProfileScreen
 import org.fisabilillah.app.ui.screens.community.OrganizationDetailScreen
+import org.fisabilillah.app.ui.screens.giving.CampaignsScreen
+import org.fisabilillah.app.ui.screens.giving.DonateScreen
+import org.fisabilillah.app.ui.screens.giving.MyGivingScreen
 import org.fisabilillah.app.ui.screens.home.HomeScreen
 import org.fisabilillah.app.ui.screens.learn.LearnScreen
 import org.fisabilillah.app.ui.screens.learn.LearningDetailScreen
@@ -86,6 +93,7 @@ import org.fisabilillah.app.ui.screens.serve.ServeScreen
 import org.fisabilillah.app.ui.viewmodel.ComposeConversationViewModel
 import org.fisabilillah.app.ui.viewmodel.ConversationViewModel
 import org.fisabilillah.app.ui.viewmodel.CommunityViewModel
+import org.fisabilillah.app.ui.viewmodel.GivingViewModel
 import org.fisabilillah.app.ui.viewmodel.HomeViewModel
 import org.fisabilillah.app.ui.viewmodel.LearnViewModel
 import org.fisabilillah.app.ui.viewmodel.MessagesViewModel
@@ -740,6 +748,7 @@ internal fun FiSabilillahNavHost(
                 onTrustedContacts = { navController.navigate(Routes.TRUSTED_CONTACTS) },
                 onWaliSettings = { navController.navigate(Routes.WALI_SETTINGS) },
                 onServiceHistory = { navController.navigate(Routes.SERVICE_HISTORY) },
+                onGiving = { navController.navigate(Routes.CAMPAIGNS) },
                 onCommitments = { navController.navigate(Routes.MY_COMMITMENTS) },
                 onVerification = { navController.navigate(Routes.MY_VERIFICATION) },
                 onQualifications = { navController.navigate(Routes.MY_QUALIFICATIONS) },
@@ -1377,6 +1386,78 @@ internal fun FiSabilillahNavHost(
         composable(Routes.COMMUNITY_GUIDELINES) {
             CommunityGuidelinesScreen(onBack = { navController.popBackStack() })
         }
+        // ── Giving ───────────────────────────────────────────────────────
+        composable(Routes.CAMPAIGNS) {
+            val viewModel: GivingViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> GivingViewModel(g, p) },
+            )
+            val campaigns by viewModel.campaigns.collectAsState()
+            val loading by viewModel.loading.collectAsState()
+
+            CampaignsScreen(
+                campaigns = campaigns,
+                loading = loading,
+                onOpen = { navController.navigate(Routes.donate(it.value)) },
+                onMyGiving = { navController.navigate(Routes.MY_GIVING) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.DONATE) { entry ->
+            val id = CampaignId(entry.arguments?.getString("id").orEmpty())
+            val viewModel: GivingViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> GivingViewModel(g, p) },
+            )
+            val errors by viewModel.errors.collectAsState()
+            val refusal by viewModel.refusal.collectAsState()
+            val submitting by viewModel.submitting.collectAsState()
+            val checkoutUrl by viewModel.checkoutUrl.collectAsState()
+
+            val campaign by produceState<org.fisabilillah.core.model.Campaign?>(null, id) {
+                value = viewModel.campaign(id)
+            }
+            val organizationName by produceState<String?>(null, campaign) {
+                value = campaign?.let { viewModel.organizationName(it) }
+            }
+
+            // The payment page opens in the browser rather than a web view. A donor can
+            // then see the address bar and the padlock and satisfy themselves about who
+            // they are paying, which is exactly what a web view takes away and exactly
+            // what a fake giving flow imitates.
+            val context = LocalContext.current
+            LaunchedEffect(checkoutUrl) {
+                val url = checkoutUrl ?: return@LaunchedEffect
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                }
+                viewModel.checkoutOpened()
+            }
+
+            DonateScreen(
+                campaign = campaign,
+                organizationName = organizationName,
+                errors = errors,
+                refusal = refusal,
+                submitting = submitting,
+                onGive = { amount, anonymous -> viewModel.give(id, amount, anonymous) },
+                onBack = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.MY_GIVING) {
+            val viewModel: GivingViewModel = viewModel(
+                factory = viewModelFactory(graph) { g, p -> GivingViewModel(g, p) },
+            )
+            val mine by viewModel.mine.collectAsState()
+            val loading by viewModel.loading.collectAsState()
+
+            MyGivingScreen(
+                lines = mine,
+                loading = loading,
+                onBack = { navController.popBackStack() },
+            )
+        }
+
         composable(Routes.GIVING_COMPLIANCE) {
             GivingComplianceScreen(onBack = { navController.popBackStack() })
         }

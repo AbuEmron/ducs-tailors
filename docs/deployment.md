@@ -217,22 +217,39 @@ These are not engineering tasks, and they cannot be done afterwards.
 
 ## 6. Payments
 
-Separate, and gated.
+Separate, and gated per campaign.
 
-`DonationFeatureFlags.paymentsEnabled` is `false`, and `Campaign.canAcceptDonations` reads
-it directly, so a verified active campaign still cannot take money. The database enforces the
-same thing independently with `check (payments_enabled = false)`.
+Stripe is wired up. The mechanism is in [`payments.md`](payments.md); the obligations are in
+[`payment-compliance.md`](payment-compliance.md), and building the mechanism discharges none
+of them.
 
-Flipping the flag is not a code change alone. The checklist that must be complete first is in
-[`payment-compliance.md`](payment-compliance.md), and it is long: legal entity, charitable
-solicitation registration per jurisdiction, tax handling, a licensed payment provider, KYC
-and KYB on receiving organisations, sanctions screening, refund and dispute policy,
-restricted-fund accounting, and PCI scope.
+What is deployed:
 
-Until then the giving area shows `DonationFeatureFlags.disabledNotice`, and
-`VerificationPolicy.canOfferDonations` returns `GivingAvailability.Preview` regardless of how
-well verified an organisation is — deliberately, because showing a donate affordance that
-cannot take money collects intent the platform has no legal ability to honour.
+- `donation-checkout` and `stripe-webhook`, two Supabase edge functions. The Stripe key
+  lives in the first; the second is the only thing in the system that can mark a donation
+  as settled, and it does so only on an event whose HMAC signature it has verified.
+- Migration `0019_stripe_payments.sql`, which takes INSERT, UPDATE and DELETE on
+  `donations` away from every client role. Before it, a member could insert a donation for
+  any amount and update their own row — harmless for a note about offline giving, and not
+  harmless once a campaign total is derived from it.
+
+What is not done, and blocks any real donation:
+
+- [ ] `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and `DONATION_RETURN_URL` set as
+      function secrets. Until they are, `donation-checkout` returns 503 and no donation can
+      be created — the intended unconfigured state.
+- [ ] A webhook endpoint created in Stripe pointing at the deployed function, subscribed to
+      the five events listed in [`payments.md`](payments.md).
+- [ ] At least one organisation verification and one campaign `financial_review` recorded,
+      because `campaign_may_collect()` returns false for every campaign until both exist.
+- [ ] **A test-mode donation taken end to end.** Nothing in this repository has ever reached
+      Stripe. The signature check has been tested against the algorithm it implements, never
+      against a real Stripe signature.
+- [ ] The compliance checklist. Registration, tax treatment, KYB, sanctions screening and a
+      published refund policy. The code enforces that somebody verified a campaign; it
+      cannot enforce that the verification meant anything.
+
+Recurring giving remains off, and `Campaign.init` throws if `allowsRecurring` is set.
 
 ---
 
@@ -244,9 +261,13 @@ cannot take money collects intent the platform has no legal ability to honour.
   cannot.
 - **Android:** Play staged rollout, halted and rolled back to the previous version code.
   Assume some users are on the bad build until they update.
-- **Feature flags:** the only one that exists is `DonationFeatureFlags`, and it is a
-  compile-time constant. If a runtime kill switch is needed for anything, it does not exist
-  yet and must be designed rather than improvised.
+- **Payments:** the kill switch is per campaign and is a database write — set
+  `payments_enabled` to false, which a platform administrator can do at any time and which
+  takes effect on the next attempt. Revoking the organisation's verification stops every
+  campaign it runs, in the same way. Neither needs a release.
+- **Other feature flags:** `DonationFeatureFlags.recurringEnabled` is a compile-time
+  constant. If a runtime kill switch is needed for anything else, it does not exist yet and
+  must be designed rather than improvised.
 
 ---
 

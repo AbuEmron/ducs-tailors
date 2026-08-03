@@ -5,6 +5,11 @@ import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.fisabilillah.core.domain.AddOversightUseCase
+import org.fisabilillah.core.domain.DonateUseCase
+import org.fisabilillah.core.domain.EnableCampaignPaymentsUseCase
+import org.fisabilillah.core.domain.MyDonationsUseCase
+import org.fisabilillah.core.domain.NoPaymentProcessor
+import org.fisabilillah.core.domain.PaymentGateway
 import org.fisabilillah.core.domain.AppClock
 import org.fisabilillah.core.domain.ApplyToOpportunityUseCase
 import org.fisabilillah.core.domain.BlockUserUseCase
@@ -212,6 +217,12 @@ public class CoreGraph(
     public val store: InMemoryStore = InMemoryStore(),
     public val clock: AppClock = SystemClock(),
     public val ids: IdGenerator = UuidIdGenerator(),
+    /**
+     * Defaults to refusing. A build that wants to take money has to say so by passing a
+     * real one, which means no deployment can start collecting because somebody forgot a
+     * flag was on.
+     */
+    public val payments: PaymentGateway = NoPaymentProcessor,
 ) {
     public val profiles: InMemoryProfileRepository = InMemoryProfileRepository(store)
     public val safeguards: InMemorySafeguardRepository = InMemorySafeguardRepository(store)
@@ -240,6 +251,7 @@ public class CoreGraph(
     public val deviceSessions: InMemoryDeviceSessionRepository =
         InMemoryDeviceSessionRepository(store)
     public val campaigns: InMemoryCampaignRepository = InMemoryCampaignRepository(store)
+    public val donations: InMemoryDonationRepository = InMemoryDonationRepository(store)
     public val skills: InMemorySkillRepository = InMemorySkillRepository(store)
 
     public val oversight: OversightDirectory = StoreOversightDirectory(store)
@@ -336,6 +348,13 @@ public class CoreGraph(
         ReportSafetyIncidentUseCase(moderation, opportunities, ids, clock)
     public val devices: DeviceSessionUseCase =
         DeviceSessionUseCase(deviceSessions, notifications, ids, clock)
+
+    public val donate: DonateUseCase = DonateUseCase(
+        campaigns, organizations, donations, payments, auditLog, ids, clock,
+    )
+    public val myDonations: MyDonationsUseCase = MyDonationsUseCase(donations, campaigns)
+    public val campaignPayments: EnableCampaignPaymentsUseCase =
+        EnableCampaignPaymentsUseCase(campaigns, organizations, auditLog, ids, clock)
 
     public val manageRoles: ManageRolesUseCase =
         ManageRolesUseCase(profiles, notifications, auditLog, ids, clock)

@@ -1063,4 +1063,199 @@ $$;
 rollback;
 
 \echo ''
+\echo '### 21. Money: a donation cannot be created, moved or claimed from a client'
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = 'cccccccc-0000-4000-8000-000000000004';   -- ibrahim
+do $$
+begin
+  -- Before 0019 both of these succeeded. donations_insert_self allowed any
+  -- amount in status 'recorded', and donations_update let a donor rewrite
+  -- their own row -- which, once a campaign total is derived from settled
+  -- donations, is a way to claim money that was never given.
+  perform test.denied($q$
+    insert into public.donations (campaign_id, donor_id, is_anonymous, status, amount)
+    values ('fb000000-0000-4000-8000-000000000001',
+            'cccccccc-0000-4000-8000-000000000004', false, 'recorded', 10000.00)
+  $q$, 'a member cannot record a donation they say they made');
+
+  perform test.denied($q$
+    update public.donations set status = 'settled', amount = 99999.00
+  $q$, 'nor promote somebody else''s donation to settled');
+
+  perform test.denied($q$delete from public.donations$q$,
+    'nor delete a donation record');
+
+  -- Not "sees zero rows" -- the grant itself is gone, so the read is
+  -- refused before any policy is consulted. That is the stronger answer:
+  -- a table a client cannot select from cannot leak through a future
+  -- policy somebody writes carelessly.
+  perform test.denied($q$select 1 from public.payment_events$q$,
+    'and cannot read the processor event ledger at all');
+
+  perform test.denied($q$
+    insert into public.payment_events (id, type) values ('evt_forged', 'checkout.session.completed')
+  $q$, 'nor forge an entry in it');
+end;
+$$;
+rollback;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = 'bbbbbbbb-0000-4000-8000-000000000003';   -- maryam, a donor
+do $$
+begin
+  perform test.ok(
+    test.count_of($q$select 1 from public.my_donations$q$) = 1,
+    'a donor sees their own giving through the view');
+
+  perform test.ok(
+    test.count_of($q$
+      select 1 from public.my_donations where campaign_title = 'Winter Warmth Fund'
+    $q$) = 1,
+    'and the campaign it went to');
+
+  -- maryam's donation is anonymous; yusuf's is not. Neither belongs to her
+  -- except her own, and the view must not become a way round that.
+  perform test.ok(
+    test.count_of($q$select 1 from public.donations$q$) = 1,
+    'and no donation but their own, anonymous or otherwise');
+end;
+$$;
+rollback;
+
+\echo ''
+\echo '### 22. Money: only a platform administrator lets a campaign collect'
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = 'cccccccc-0000-4000-8000-000000000003';   -- zayd, org admin
+do $$
+begin
+  -- Zayd administers the trust and created both campaigns. He can edit
+  -- them. Deciding that one may take money is not editing.
+  perform test.denied($q$
+    update public.campaigns set payments_enabled = true
+     where id = 'fb000000-0000-4000-8000-000000000001'
+  $q$, 'an organisation administrator cannot switch on their own campaign');
+
+  perform test.ok(
+    test.affected($q$
+      update public.campaigns set cause_note = 'Reworded by the trust'
+       where id = 'fb000000-0000-4000-8000-000000000001'
+    $q$) = 1,
+    'but can still edit the campaign itself');
+end;
+$$;
+rollback;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = 'aaaaaaaa-0000-4000-8000-000000000001';   -- Rahma, platform admin
+do $$
+begin
+  -- The roof-repair campaign has no verified financial review. Being an
+  -- administrator is not enough; there has to be something to rely on.
+  perform test.denied($q$
+    update public.campaigns set payments_enabled = true
+     where id = 'fb000000-0000-4000-8000-000000000002'
+  $q$, 'not even an administrator can switch on an unreviewed campaign');
+
+  -- The winter fund has one, and its organisation's verification is current.
+  perform test.ok(
+    test.affected($q$
+      update public.campaigns set payments_enabled = true
+       where id = 'fb000000-0000-4000-8000-000000000001'
+    $q$) = 1,
+    'a reviewed campaign at a verified organisation can be switched on');
+
+  perform test.ok(
+    (select app.campaign_may_collect('fb000000-0000-4000-8000-000000000001')),
+    'and then reports that it may collect');
+
+  -- The edge function reaches this through the public wrapper, which is
+  -- the only thing PostgREST can see. A member must not be able to call
+  -- it: knowing which campaigns are about to start collecting is not a
+  -- thing a donor needs and is a thing an attacker would like.
+  perform test.denied(
+    $q$select public.campaign_may_collect('fb000000-0000-4000-8000-000000000001')$q$,
+    'but a client session cannot ask that question through the API');
+
+  -- Revoking the organisation's verification stops the money the same day,
+  -- without anyone revisiting the campaign.
+  update public.organization_verifications
+     set revoked_at = now()
+   where organization_id = 'f0000000-0000-4000-8000-000000000001';
+
+  perform test.ok(
+    not (select app.campaign_may_collect('fb000000-0000-4000-8000-000000000001')),
+    'a lapsed organisation verification stops collection immediately');
+
+  perform test.ok(
+    (select payments_enabled from public.campaigns
+      where id = 'fb000000-0000-4000-8000-000000000001'),
+    'without the campaign flag itself being changed behind anyone''s back');
+end;
+$$;
+rollback;
+
+\echo ''
+\echo '### 23. Money: a campaign total counts settled donations only'
+
+begin;
+set local role postgres;
+do $$
+declare
+  v_before numeric;
+  v_after  numeric;
+  v_id     uuid;
+begin
+  select recorded_total into v_before from public.campaigns
+   where id = 'fb000000-0000-4000-8000-000000000001';
+
+  insert into public.donations (campaign_id, donor_id, is_anonymous, status, amount)
+  values ('fb000000-0000-4000-8000-000000000001',
+          'cccccccc-0000-4000-8000-000000000004', false, 'awaiting_payment', 5000.00)
+  returning id into v_id;
+
+  select recorded_total into v_after from public.campaigns
+   where id = 'fb000000-0000-4000-8000-000000000001';
+  perform test.ok(v_after = v_before,
+    'an unpaid donation does not move the total');
+
+  update public.donations
+     set status = 'settled', provider_payment_id = 'pi_test', settled_at = now()
+   where id = v_id;
+
+  select recorded_total into v_after from public.campaigns
+   where id = 'fb000000-0000-4000-8000-000000000001';
+  perform test.ok(v_after = v_before + 5000.00,
+    'settling it does');
+
+  update public.donations set status = 'refunded' where id = v_id;
+
+  select recorded_total into v_after from public.campaigns
+   where id = 'fb000000-0000-4000-8000-000000000001';
+  perform test.ok(v_after = v_before,
+    'and refunding it takes it back off again');
+end;
+$$;
+rollback;
+
+begin;
+set local role postgres;
+do $$
+begin
+  perform test.ok(
+    test.count_of($q$
+      select 1 from pg_indexes
+       where tablename = 'donations' and indexname = 'donations_provider_session_uniq'
+    $q$) = 1,
+    'one processor session can only ever settle one donation');
+end;
+$$;
+rollback;
+
+\echo ''
 \echo '### all assertions completed'

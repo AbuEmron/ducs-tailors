@@ -85,6 +85,7 @@ dependencies {
     implementation("org.fisabilillah:core-domain:0.1.0")
     implementation("org.fisabilillah:core-data:0.1.0")
     implementation("org.fisabilillah:core-auth:0.1.0")
+    implementation("org.fisabilillah:core-payments:0.1.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

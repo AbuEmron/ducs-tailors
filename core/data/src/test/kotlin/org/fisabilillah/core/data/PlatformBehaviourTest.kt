@@ -443,15 +443,18 @@ class SeedDataTest {
     }
 
     @Test
-    fun `the verified campaign still cannot take a payment`() = runTest {
+    fun `a verified campaign still cannot take a payment until it is switched on`() = runTest {
         val harness = Harness()
         val campaign = harness.store.campaigns.values.first()
         assertEquals(
             org.fisabilillah.core.model.CampaignVerification.VERIFIED,
             campaign.verification,
         )
-        assertFalse(campaign.canAcceptDonations, "payments must stay behind the flag")
-        assertFalse(DonationFeatureFlags.paymentsEnabled)
+        assertFalse(
+            campaign.canAcceptDonations,
+            "verification is not permission to collect; an administrator still decides",
+        )
+        assertFalse(campaign.paymentsEnabled)
         assertFalse(campaign.zakatEligible)
     }
 
