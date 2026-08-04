@@ -106,7 +106,7 @@
 
 | File | Size |
 | --- | --- |
-| `FiSabilillahLogo.tsx` | 6,799 B |
+| `FiSabilillahLogo.tsx` | 7,065 B |
 | `FiSabilillahSplash.tsx` | 1,517 B |
 
 ### `brand/splash/`

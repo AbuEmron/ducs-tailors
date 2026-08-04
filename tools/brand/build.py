@@ -452,7 +452,10 @@ export function FiSabilillahLogo({{
 }}: FiSabilillahLogoProps) {{
   const px = EMBLEM_HEIGHT[size];
   const t = TONES[variant === "monochrome" ? "monochrome" : tone];
-  const gid = React.useId();
+  // React's ids contain colons, which are legal in an id attribute but break the
+  // moment anything tries to select one. Stripped, because a gradient that
+  // resolves everywhere except in one CSS query is a bug that takes an afternoon.
+  const gid = "fs" + React.useId().replace(/:/g, "");
 
   // The variant asked for is not always the variant that should be drawn. A
   // "horizontal" logo at 16px is a wordmark nobody can read beside a mark nobody
