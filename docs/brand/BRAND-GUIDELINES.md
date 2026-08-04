@@ -403,7 +403,7 @@ Do not:
 Nothing under `brand/` is edited by hand.
 
 ```console
-$ python3 tools/brand/build.py      # 99 files
+$ python3 tools/brand/build.py      # 98 files
 $ python3 tools/brand/validate.py   # 369 checks
 ```
 

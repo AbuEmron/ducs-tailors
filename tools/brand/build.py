@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cairosvg
 import geometry as G
 import tokens as T
-from letters import (ARABIC, CAP, DISPLAY, DISPLAY_REGULAR, TEXT, TEXT_REGULAR,
+from letters import (CAP, DISPLAY, DISPLAY_REGULAR, LICENCES, TEXT,
                      calligraphy_path, group, measure, scale_for_width,
                      word_path_data)
 
@@ -962,7 +962,8 @@ IOS_SIZES = (1024, 180, 167, 152, 120, 87, 80, 76, 60, 58, 40, 29, 20)
 
 
 def main():
-    for name in ("PlayfairDisplay-OFL.txt", "Inter-OFL.txt", "NotoKufiArabic-OFL.txt"):
+    # One list, in letters.py, next to the fonts they cover.
+    for name in LICENCES:
         if os.path.exists(os.path.join(B, "licences", name)):
             written.append(f"licences/{name}")
 

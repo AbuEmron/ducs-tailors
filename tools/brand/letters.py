@@ -224,17 +224,3 @@ def calligraphy_path(box, font=ARABIC, lines=CALLIGRAPHY_LINES, gap=0.14, split=
         arabic_line(lines[0], (bx0, by0, bx1, by0 + h1), font),
         arabic_line(lines[1], (bx0, by1 - h2, bx1, by1), font),
     ])
-
-
-# ── Licences ─────────────────────────────────────────────────────────────────
-
-def copy_licences(dest_dir):
-    """Every font licence, alongside the assets that use it."""
-    os.makedirs(dest_dir, exist_ok=True)
-    written = []
-    src_dir = os.path.join(os.path.dirname(FONTS), "..", "..", "brand", "licences")
-    for name in LICENCES:
-        src = os.path.abspath(os.path.join(src_dir, name))
-        if os.path.exists(src):
-            written.append(f"licences/{name}")
-    return written
