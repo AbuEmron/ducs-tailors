@@ -42,10 +42,19 @@ import org.fisabilillah.app.ui.theme.FiSabilillahTheme
  *
  * ## Where the logo goes, and where it does not
  *
- * The full lockup appears in exactly three places: the landing screen, the sign-in screen
- * and the splash. Everywhere else the emblem alone identifies the application — a top bar
- * carrying the wordmark on every screen is a product reminding you whose it is, which is
- * the opposite of the calm this system is meant to hold.
+ * The full lockup appears in exactly one place: the landing screen. Everywhere else the
+ * emblem alone identifies the application — a top bar carrying the wordmark on every screen
+ * is a product reminding you whose it is, which is the opposite of the calm this system is
+ * meant to hold.
+ *
+ * [BrandSplash] is written and is not wired to anything, which is deliberate rather than an
+ * oversight. `MainActivity.StartUpScreen` shows a spinner and a line of text saying what is
+ * happening, and is gone as soon as the stored session has been checked; putting a 520ms
+ * brand animation in front of that would add half a second to every cold start in exchange
+ * for decoration. It is kept because a splash is a thing a brand has to have specified —
+ * the store listing and the PNG exports under `brand/splash/` use the same composition —
+ * and because the day this app gains a genuinely slow startup path, the answer should
+ * already exist rather than be improvised then.
  */
 
 /** The tone the mark is drawn in. */
@@ -109,7 +118,12 @@ internal fun BrandEmblem(
         modifier = modifier
             .size(size)
             .then(if (contentDescription == null) Modifier.clearAndSetSemantics { } else Modifier),
-        colorFilter = if (tone == BrandTone.Monochrome) ColorFilter.tint(arch) else null,
+        // The drawable is gold, and gold is 1.88:1 on a light ground. Inside the app the
+        // surfaces are the Amanah palette's light ones, so the in-product tone is tinted
+        // too rather than only its wordmark — an untinted emblem there would break the
+        // one colour rule this identity states most loudly. Only OnBrand, which is used
+        // exclusively over the deep-green grounds, keeps the gold.
+        colorFilter = if (tone == BrandTone.OnBrand) null else ColorFilter.tint(arch),
     )
 }
 
