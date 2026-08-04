@@ -245,6 +245,14 @@ is the default representation of a person throughout the app.
 | [`docs/child-safety.md`](docs/child-safety.md) | The adults-only position and what must exist before youth functionality ships |
 | [`docs/payment-compliance.md`](docs/payment-compliance.md) | The checklist that must be complete before payments are enabled |
 
+### Brand
+
+| Document | What it is for |
+| --- | --- |
+| [`docs/brand/BRAND-GUIDELINES.md`](docs/brand/BRAND-GUIDELINES.md) | The mark, the palette, the type, and the rules that keep them meaning something |
+| [`docs/brand/LOGO-USAGE.md`](docs/brand/LOGO-USAGE.md) | Which variant to reach for, at what size, on what background |
+| [`docs/brand/ASSET-INVENTORY.md`](docs/brand/ASSET-INVENTORY.md) | Every generated file, and what was checked about it. Generated. |
+
 ### Database
 
 | Document | What it is for |

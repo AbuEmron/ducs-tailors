@@ -1,102 +1,143 @@
 """
-Fi Sabilillah — the wordmark, drawn rather than typeset.
+Fi Sabilillah — the wordmark.
 
-"FI SABILILLAH" needs seven unique capitals: F I S A B L H. Drawing them is
-cheaper than it sounds and buys three things a licensed font cannot:
+The reference sets its wordmark in Playfair Display: a high-contrast transitional
+serif, letterspaced, in ivory over deep green. That is the right character, and
+this reproduces it -- with one change that matters technically.
 
-  * No font dependency in any SVG. The brief requires it, and it is also the
-    difference between a logo that renders on a stranger's machine and one that
-    falls back to Times New Roman on an app-store listing.
-  * No licensing question about embedding a commercial face in a trademark.
-  * Terminals, weight and counters tuned to sit beside the emblem specifically.
+Rather than referencing a font at render time, the glyph outlines are extracted
+once and written into the artwork as paths. The reference's approach means every
+SVG, every app-store listing and every partner's presentation deck depends on a
+Google font being installed; where it is not, the wordmark silently falls back to
+Times New Roman. Outlines cannot fall back.
 
-The reference image set its wordmark in Playfair Display. A serif at wordmark
-size is a defensible choice, but it made the identity depend on a Google font
-being present, and Playfair's hairlines disappear entirely below about 18px --
-which is most of the places a wordmark actually appears on a phone.
+THE FACE
 
-These are geometric capitals on a 100-unit cap height with a 14-unit stem, wide
-letterspacing, and flat terminals. Institutional rather than fashionable.
+Libre Baskerville (SIL Open Font License 1.1), the closest available relative of
+Playfair Display: same transitional skeleton, same high stroke contrast, slightly
+sturdier serifs -- which is an improvement at wordmark sizes, where Playfair's
+hairlines start disappearing below about 18px.
+
+LICENSING
+
+The OFL permits embedding and permits deriving outlines. What it forbids is
+selling the font software itself and reusing the reserved name. Neither applies
+to a logotype. The licence file travels with the repository at
+`brand/licences/LibreBaskerville-OFL.txt`.
 """
+import os
+from fontTools.pens.svgPathPen import SVGPathPen
+from fontTools.pens.transformPen import TransformPen
+from fontTools.ttLib import TTFont
 
-CAP = 100.0
-WEIGHT = 14.0
-TRACKING = 22.0   # generous: letterspaced capitals read as an institution
+FONT_PATH = "/mnt/skills/examples/canvas-design/canvas-fonts/LibreBaskerville-Regular.ttf"
+LICENCE_PATH = "/mnt/skills/examples/canvas-design/canvas-fonts/LibreBaskerville-OFL.txt"
 
-# Each glyph: (advance width, [(path, fillrule)])
-GLYPHS = {
-    "F": (60.0, [("M0 0 L60 0 L60 14 L14 14 L14 43 L50 43 L50 57 L14 57 L14 100 L0 100 Z", "nonzero")]),
-    "I": (14.0, [("M0 0 L14 0 L14 100 L0 100 Z", "nonzero")]),
-    "L": (58.0, [("M0 0 L14 0 L14 86 L58 86 L58 100 L0 100 Z", "nonzero")]),
-    "H": (68.0, [("M0 0 L14 0 L14 43 L54 43 L54 0 L68 0 L68 100 L54 100 L54 57 L14 57 L14 100 L0 100 Z", "nonzero")]),
-    # Flat-topped A. The counter is a separate subpath lifted out with evenodd
-    # rather than drawn as a reversed contour, because a reversed contour is the
-    # commonest way a hand-built glyph renders solid in one browser and correct
-    # in another.
-    "A": (72.0, [("M0 100 L26 0 L46 0 L72 100 L57.5 100 L53.2 82 L18.8 82 L14.5 100 Z"
-                  " M36 22 L22.2 68 L49.8 68 Z", "evenodd")]),
-    "B": (62.0, [("M0 0 L38 0 C50 0 57 7 57 22 C57 33 52.5 41 45 44.5"
-                  " C54 47.5 62 55.5 62 71 C62 88 54 100 39 100 L0 100 Z"
-                  " M14 13 L38 13 C44 13 47.5 18.5 47.5 28 C47.5 37.5 44 43 38 43 L14 43 Z"
-                  " M14 57 L39 57 C46 57 51 63 51 72 C51 81 46 87 39 87 L14 87 Z", "evenodd")]),
-    # S is the one letter with no flat sides to build from, so it is a stroked
-    # centreline at the same 14 units with butt caps. The terminals then match
-    # the flat terminals of every other glyph exactly.
-    "S": (62.0, [("STROKE:M52 22 C52 12 43 7 31 7 C19 7 11 15 11 25"
-                  " C11 35 19 41 31 46 C43 51 52 58 52 70"
-                  " C52 82 43 93 31 93 C19 93 11 86 11 77", "nonzero")]),
-}
+CAP = 100.0          # the grid every lockup is laid out on
+TRACKING = 0.16      # em. Wide, institutional, and matching the reference's spacing.
 
-SPACE = 44.0
+_font = None
+_upem = None
+_cap_scale = None
+
+
+def _load():
+    global _font, _upem, _cap_scale
+    if _font is None:
+        _font = TTFont(FONT_PATH)
+        _upem = _font["head"].unitsPerEm
+        cap = _font["OS/2"].sCapHeight if hasattr(_font["OS/2"], "sCapHeight") else 1400
+        _cap_scale = CAP / cap
+    return _font, _upem, _cap_scale
 
 
 def word_paths(text, x=0.0, y=0.0, scale=1.0):
-    """Emit (d, fillrule, is_stroke) for each glyph, positioned along the baseline."""
+    """
+    (d, fill-rule, is_stroke) for each glyph, positioned along the baseline.
+
+    `y` is the top of the cap box, matching the geometric letterforms this
+    replaced, so every lockup's alignment maths is unchanged.
+    """
+    font, upem, cap_scale = _load()
+    glyphs = font.getGlyphSet()
+    cmap = font.getBestCmap()
+    hmtx = font["hmtx"]
+    s = cap_scale * scale
+    baseline = y + CAP * scale
     out, cursor = [], x
+
     for ch in text:
-        if ch == " ":
-            cursor += SPACE * scale
+        name = cmap.get(ord(ch))
+        if name is None:
+            cursor += 0.34 * CAP * scale
             continue
-        adv, paths = GLYPHS[ch]
-        for d, rule in paths:
-            stroke = d.startswith("STROKE:")
-            if stroke:
-                d = d[len("STROKE:"):]
-            out.append((_translate(d, cursor, y, scale), rule, stroke))
-        cursor += (adv + TRACKING) * scale
-    return out, cursor - TRACKING * scale - x
+        advance = hmtx[name][0]
+        if ch != " ":
+            pen = SVGPathPen(glyphs, ntos=lambda v: f"{v:.2f}")
+            glyphs[name].draw(pen)
+            d = pen.getCommands()
+            if d:
+                # The font's y axis runs up from the baseline; SVG's runs down.
+                out.append((
+                    f'<g transform="translate({cursor:.2f},{baseline:.2f}) '
+                    f'scale({s:.5f},{-s:.5f})"><path d="{d}"/></g>',
+                    "nonzero", False))
+        cursor += advance * s + TRACKING * CAP * scale
+
+    return out, cursor - TRACKING * CAP * scale - x
 
 
-def _translate(d, dx, dy, s):
-    """Scale then translate every coordinate pair in an absolute-only path."""
-    out, i, n = [], 0, len(d)
-    while i < n:
-        c = d[i]
-        if c.isalpha():
-            out.append(c); i += 1; continue
-        if c in " ,":
-            out.append(c); i += 1; continue
-        j = i
-        while j < n and (d[j].isdigit() or d[j] in ".-"):
-            j += 1
-        out.append(d[i:j]); i = j
-    # rebuild, transforming coordinate pairs in order
-    nums, rebuilt, pending = [], [], []
-    for tok in out:
-        if tok and (tok[0].isdigit() or tok[0] in ".-"):
-            nums.append(float(tok))
-    it = iter(nums)
-    vals = []
-    try:
-        while True:
-            px = next(it); py = next(it)
-            vals.append(px * s + dx); vals.append(py * s + dy)
-    except StopIteration:
-        pass
-    k = 0
-    for tok in out:
-        if tok and (tok[0].isdigit() or tok[0] in ".-"):
-            rebuilt.append(f"{vals[k]:.2f}"); k += 1
-        else:
-            rebuilt.append(tok)
-    return "".join(rebuilt)
+def word_path_data(text, x=0.0, y=0.0, scale=1.0):
+    """
+    The whole wordmark as one already-positioned path, and its width.
+
+    Same outlines as [word_paths], but with the placement baked into the
+    coordinates instead of expressed as a wrapping transform. That is what a
+    VectorDrawable needs: it has no SVG `transform` attribute, and while a
+    `<group>` can carry a negative `android:scaleY` to undo the font's upward y
+    axis, a mirrored group is the kind of thing that renders correctly on the
+    machine it was written on and surprises somebody two Android versions later.
+    Baking it in leaves nothing to interpret.
+
+    Glyph outlines wind consistently, so one path holding every letter fills
+    identically to twelve separate ones under the nonzero rule.
+    """
+    font, upem, cap_scale = _load()
+    glyphs = font.getGlyphSet()
+    cmap = font.getBestCmap()
+    hmtx = font["hmtx"]
+    s = cap_scale * scale
+    baseline = y + CAP * scale
+    parts, cursor = [], x
+
+    for ch in text:
+        name = cmap.get(ord(ch))
+        if name is None:
+            cursor += 0.34 * CAP * scale
+            continue
+        if ch != " ":
+            pen = SVGPathPen(glyphs, ntos=lambda v: f"{v:.2f}")
+            # (x, y) -> (cursor + x*s, baseline - y*s): the font's y runs up from
+            # the baseline, the drawing surface's runs down.
+            glyphs[name].draw(TransformPen(pen, (s, 0, 0, -s, cursor, baseline)))
+            d = pen.getCommands()
+            if d:
+                parts.append(d)
+        cursor += hmtx[name][0] * s + TRACKING * CAP * scale
+
+    return " ".join(parts), cursor - TRACKING * CAP * scale - x
+
+
+def wordmark_group(text, fill, x, y, scale):
+    """The whole wordmark as one fill-coloured group, and its width."""
+    parts, width = word_paths(text, x=x, y=y, scale=scale)
+    body = "".join(p for p, _, _ in parts)
+    return f'<g fill="{fill}">{body}</g>', width
+
+
+def copy_licence(dest_dir):
+    os.makedirs(dest_dir, exist_ok=True)
+    dest = os.path.join(dest_dir, "LibreBaskerville-OFL.txt")
+    with open(LICENCE_PATH) as src, open(dest, "w") as out:
+        out.write(src.read())
+    return dest

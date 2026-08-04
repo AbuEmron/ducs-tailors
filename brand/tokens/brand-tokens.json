@@ -1,136 +1,136 @@
 {
   "brand": {
-    "sabil-green": {
-      "hex": "#0B3A30",
+    "deep-green": {
+      "hex": "#0F3D34",
       "rgb": [
-        11,
-        58,
-        48
+        15,
+        61,
+        52
       ],
       "hsl": [
-        167.2,
-        68.1,
-        13.5
+        168.3,
+        60.5,
+        14.9
       ],
       "cmyk": [
-        81,
+        75,
         0,
-        17,
-        77
-      ],
-      "usage": "The primary. Deep enough to sit under brass without the brass glaring."
-    },
-    "sabil-green-deep": {
-      "hex": "#072A22",
-      "rgb": [
-        7,
-        42,
-        34
-      ],
-      "hsl": [
-        166.3,
-        71.4,
-        9.6
-      ],
-      "cmyk": [
-        83,
-        0,
-        19,
-        84
-      ],
-      "usage": "Splash and immersive backgrounds only. Not a surface colour."
-    },
-    "mineral-green": {
-      "hex": "#1F5A4C",
-      "rgb": [
-        31,
-        90,
+        15,
         76
       ],
+      "usage": "The primary ground. The reference's own value, kept."
+    },
+    "forest-deep": {
+      "hex": "#0A2A24",
+      "rgb": [
+        10,
+        42,
+        36
+      ],
       "hsl": [
-        165.8,
-        48.8,
-        23.7
+        168.8,
+        61.5,
+        10.2
       ],
       "cmyk": [
-        66,
+        76,
         0,
-        16,
-        65
+        14,
+        84
       ],
-      "usage": "Raised surfaces on a green ground; the second step of depth."
+      "usage": "Splash and immersive grounds; a step under the primary."
+    },
+    "mineral": {
+      "hex": "#1C574A",
+      "rgb": [
+        28,
+        87,
+        74
+      ],
+      "hsl": [
+        166.8,
+        51.3,
+        22.5
+      ],
+      "cmyk": [
+        68,
+        0,
+        15,
+        66
+      ],
+      "usage": "Raised surfaces on a green ground."
     },
     "sage": {
-      "hex": "#7FA98C",
+      "hex": "#6BAA7D",
       "rgb": [
-        127,
-        169,
-        140
+        107,
+        170,
+        125
       ],
       "hsl": [
-        138.6,
-        19.6,
-        58.0
+        137.1,
+        27.0,
+        54.3
       ],
       "cmyk": [
-        25,
+        37,
+        0,
+        26,
+        33
+      ],
+      "usage": "Supporting tint. 4.42:1 on deep green \u2014 graphics, not body text."
+    },
+    "gold": {
+      "hex": "#D4AF37",
+      "rgb": [
+        212,
+        175,
+        55
+      ],
+      "hsl": [
+        45.9,
+        64.6,
+        52.4
+      ],
+      "cmyk": [
         0,
         17,
-        34
+        74,
+        17
       ],
-      "usage": "Supporting tint. Dividers and quiet states on green."
+      "usage": "The accent, on dark grounds. 5.75:1 on deep green."
     },
-    "brass": {
-      "hex": "#C6A664",
+    "gold-deep": {
+      "hex": "#7A5E15",
       "rgb": [
-        198,
-        166,
-        100
+        122,
+        94,
+        21
       ],
       "hsl": [
-        40.4,
-        46.2,
-        58.4
+        43.4,
+        70.6,
+        28.0
       ],
       "cmyk": [
         0,
-        16,
-        49,
-        22
+        23,
+        83,
+        52
       ],
-      "usage": "The accent, on dark grounds only. 5.44:1 on sabil-green."
-    },
-    "brass-deep": {
-      "hex": "#836427",
-      "rgb": [
-        131,
-        100,
-        39
-      ],
-      "hsl": [
-        39.8,
-        54.1,
-        33.3
-      ],
-      "cmyk": [
-        0,
-        24,
-        70,
-        49
-      ],
-      "usage": "The accent for light grounds. Brass on ivory is 2.06:1 and illegible;\n                                 this is 4.87:1 and clears AA for text as well as for graphics."
+      "usage": "The accent for light grounds. Gold on ivory is 1.88:1 and\n                                unusable; this is 5.45:1."
     },
     "ivory": {
-      "hex": "#F4F1E8",
+      "hex": "#F5F2E9",
       "rgb": [
-        244,
-        241,
-        232
+        245,
+        242,
+        233
       ],
       "hsl": [
         45.0,
-        35.3,
-        93.3
+        37.5,
+        93.7
       ],
       "cmyk": [
         0,
@@ -138,45 +138,45 @@
         5,
         4
       ],
-      "usage": "The light ground and the mark on dark grounds."
+      "usage": "The light ground, and the wordmark on dark grounds."
     },
     "charcoal": {
-      "hex": "#0C1013",
+      "hex": "#0D1115",
       "rgb": [
-        12,
-        16,
-        19
+        13,
+        17,
+        21
       ],
       "hsl": [
-        205.7,
-        22.6,
-        6.1
+        210.0,
+        23.5,
+        6.7
       ],
       "cmyk": [
-        37,
-        16,
+        38,
+        19,
         0,
-        93
+        92
       ],
-      "usage": "One-colour dark. Print, foil blocking, and the monochrome mark."
+      "usage": "One-colour dark, print, foil blocking, monochrome."
     },
     "stone": {
-      "hex": "#64727C",
+      "hex": "#68757A",
       "rgb": [
-        100,
-        114,
-        124
+        104,
+        117,
+        122
       ],
       "hsl": [
-        205.0,
-        10.7,
-        43.9
+        196.7,
+        8.0,
+        44.3
       ],
       "cmyk": [
-        19,
-        8,
+        15,
+        4,
         0,
-        51
+        52
       ],
       "usage": "Neutral text and secondary rules."
     }
@@ -283,39 +283,44 @@
       "usage": "Service and safeguard-affirmative."
     },
     "neutral": {
-      "hex": "#64727C",
+      "hex": "#68757A",
       "rgb": [
-        100,
-        114,
-        124
+        104,
+        117,
+        122
       ],
       "hsl": [
-        205.0,
-        10.7,
-        43.9
+        196.7,
+        8.0,
+        44.3
       ],
       "cmyk": [
-        19,
-        8,
+        15,
+        4,
         0,
-        51
+        52
       ],
       "usage": "Everything unweighted."
     }
   },
+  "goldRamp": [
+    "#F0DFA8",
+    "#E0C264",
+    "#D4AF37",
+    "#A8811F"
+  ],
   "contrast": {
-    "ivory-on-sabil-green": 11.19,
-    "brass-on-sabil-green": 5.44,
-    "brass-on-ivory": 2.06,
-    "brass-deep-on-ivory": 4.87,
-    "sabil-green-on-ivory": 11.19,
-    "ivory-on-charcoal": 16.92
+    "ivory-on-deep-green": 10.8,
+    "gold-on-deep-green": 5.75,
+    "gold-on-ivory": 1.88,
+    "gold-deep-on-ivory": 5.45,
+    "sage-on-deep-green": 4.42,
+    "deep-green-on-ivory": 10.8,
+    "ivory-on-charcoal": 16.93
   },
-  "geometry": {
-    "viewBox": 64,
-    "stroke": 5.0,
-    "strokeSmall": 6.0,
+  "typography": {
+    "wordmark": "Libre Baskerville, outlines embedded as paths (SIL OFL 1.1)",
     "capHeight": 100.0,
-    "wordmarkWeight": 14.0
+    "tracking": "0.16em"
   }
 }

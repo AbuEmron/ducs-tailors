@@ -3,7 +3,7 @@ Fi Sabilillah — brand colour tokens.
 
 TWO PALETTES, ON PURPOSE
 
-The brand palette below is deep green and brass. The product palette -- what the
+The brand palette below is deep green and gold. The product palette -- what the
 application's screens are actually painted in -- is the Amanah harbour blue in
 `androidApp/.../ui/theme/Color.kt`. They are different, and that is a decision
 rather than an oversight.
@@ -19,20 +19,21 @@ app icon. Everywhere inside the app the emblem is drawn in the product palette,
 which is why `EMBLEM_TONES` includes an `amanah` tone.
 
 Gold is an accent and never the load-bearing element. Every mark works with the
-brass removed entirely -- see the monochrome variants -- because gold on a light
+gold removed entirely -- see the monochrome variants -- because gold on a light
 background is the single commonest way a premium identity becomes illegible.
 """
 
 BRAND = {
-    "sabil-green":      ("#0B3A30", "The primary. Deep enough to sit under brass without the brass glaring."),
-    "sabil-green-deep": ("#072A22", "Splash and immersive backgrounds only. Not a surface colour."),
-    "mineral-green":    ("#1F5A4C", "Raised surfaces on a green ground; the second step of depth."),
-    "sage":             ("#7FA98C", "Supporting tint. Dividers and quiet states on green."),
-    "brass":            ("#C6A664", "The accent, on dark grounds only. 5.44:1 on sabil-green."),
-    "brass-deep":       ("#836427", "The accent for light grounds. Brass on ivory is 2.06:1 and illegible;\n                                 this is 4.87:1 and clears AA for text as well as for graphics."),
-    "ivory":            ("#F4F1E8", "The light ground and the mark on dark grounds."),
-    "charcoal":         ("#0C1013", "One-colour dark. Print, foil blocking, and the monochrome mark."),
-    "stone":            ("#64727C", "Neutral text and secondary rules."),
+    "deep-green":  ("#0F3D34", "The primary ground. The reference's own value, kept."),
+    "forest-deep": ("#0A2A24", "Splash and immersive grounds; a step under the primary."),
+    "mineral":     ("#1C574A", "Raised surfaces on a green ground."),
+    "sage":        ("#6BAA7D", "Supporting tint. 4.42:1 on deep green — graphics, not body text."),
+    "gold":        ("#D4AF37", "The accent, on dark grounds. 5.75:1 on deep green."),
+    "gold-deep":   ("#7A5E15", "The accent for light grounds. Gold on ivory is 1.88:1 and\n"
+                               "                                unusable; this is 5.45:1."),
+    "ivory":       ("#F5F2E9", "The light ground, and the wordmark on dark grounds."),
+    "charcoal":    ("#0D1115", "One-colour dark, print, foil blocking, monochrome."),
+    "stone":       ("#68757A", "Neutral text and secondary rules."),
 }
 
 # Restated from the Amanah product palette so a designer reading only the brand
@@ -43,21 +44,27 @@ FUNCTIONAL = {
     "danger":   ("#A04B55", "Restriction, dispute, refusal."),
     "learning": ("#6C638E", "Learning surfaces, and nothing else."),
     "service":  ("#246F6C", "Service and safeguard-affirmative."),
-    "neutral":  ("#64727C", "Everything unweighted."),
+    "neutral":  ("#68757A", "Everything unweighted."),
 }
+
+# The gold ramp the emblem's gradient is built from. A gradient rather than a
+# bevel filter: a filter does not survive being printed, foil-blocked, converted
+# to a VectorDrawable, or rendered at 16px, and every one of those happens.
+GOLD_RAMP = ("#F0DFA8", "#E0C264", "#D4AF37", "#A8811F")
 
 # How the emblem is coloured in each context.
 #   (background, arch stroke, inner opening)
+#   name -> (plate, ink, gradient?)
 EMBLEM_TONES = {
-    "primary":    ("#0B3A30", "#F4F1E8", "#C6A664"),
-    "dark":       ("#0C1013", "#F4F1E8", "#C6A664"),
-    "light":      ("#F4F1E8", "#0B3A30", "#836427"),
-    "gold":       ("#0B3A30", "#C6A664", "#F4F1E8"),
-    "mono-black": (None,      "#0C1013", "#0C1013"),
-    "mono-white": (None,      "#FFFFFF", "#FFFFFF"),
-    # In-app: the emblem drawn in the product palette so it belongs to the screen
-    # it sits on rather than looking pasted over it.
-    "amanah":     ("#0E4861", "#F4F1E8", "#C6A664"),
+    "primary":    ("#0F3D34", None,      True),   # gold gradient on deep green
+    "flat":       ("#0F3D34", "#D4AF37", False),  # one flat gold; print, and Android
+    "dark":       ("#0D1115", None,      True),
+    "light":      ("#F5F2E9", "#7A5E15", False),  # gold-deep: gold on ivory is 1.88:1
+    "ivory":      ("#0F3D34", "#F5F2E9", False),  # ivory mark on green
+    "mono-black": (None,      "#0D1115", False),
+    "mono-white": (None,      "#FFFFFF", False),
+    # Inside the application, where the surrounding surfaces are Amanah harbour blue.
+    "amanah":     ("#0E4861", "#D4AF37", False),
 }
 
 

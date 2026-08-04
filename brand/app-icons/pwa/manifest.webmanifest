@@ -4,8 +4,8 @@
   "description": "Service, learning, mutual aid and community.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0B3A30",
-  "theme_color": "#0B3A30",
+  "background_color": "#0F3D34",
+  "theme_color": "#0F3D34",
   "icons": [
     {
       "src": "/brand/app-icons/pwa/icon-192.png",

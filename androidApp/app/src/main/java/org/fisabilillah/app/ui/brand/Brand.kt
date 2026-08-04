@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +23,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -48,7 +50,7 @@ import org.fisabilillah.app.ui.theme.FiSabilillahTheme
 
 /** The tone the mark is drawn in. */
 internal enum class BrandTone {
-    /** Ivory arch, brass opening. For the brand grounds: splash, landing, sign-in. */
+    /** Gold mark, ivory word. For the brand grounds: splash, landing, sign-in. */
     OnBrand,
 
     /** Drawn in the product palette so it belongs to the screen rather than sitting on it. */
@@ -57,6 +59,18 @@ internal enum class BrandTone {
     /** One colour, taken from the caller. Notifications, dense lists, disabled states. */
     Monochrome,
 }
+
+/**
+ * How much wider than tall `brand_wordmark` is — 1267.25 / 102, straight off the generated
+ * drawable's viewport.
+ *
+ * Every wordmark size below is expressed as a fraction of the emblem and then divided by
+ * this, so the two lockups keep the emblem-to-word ratio the brand sheet uses (roughly 6:1
+ * beside the mark, 2.9:1 under it) and so nothing overflows a 320dp screen. A wordmark
+ * sized by eye is how a lockup ends up correct on the reviewer's phone and clipped on the
+ * cheapest one.
+ */
+private const val WORDMARK_ASPECT = 12.42f
 
 @Composable
 private fun archColour(tone: BrandTone, mono: Color): Color = when (tone) {
@@ -68,9 +82,13 @@ private fun archColour(tone: BrandTone, mono: Color): Color = when (tone) {
 /**
  * The emblem alone.
  *
- * Below 32.dp the small cut is used: the middle arch closes up against the other two at
- * that size and the mark turns into a smudge. The switch is automatic because leaving it
- * to the caller means it will be got wrong exactly once, in a notification, at 24dp.
+ * Below 32.dp the small cut is used: it drops the arch's inner keyline, the star and the
+ * two leaf sweeps, thickens what is left, and keeps the crescent and a two-arch arcade.
+ * Those three details are under a pixel wide at 24dp, and detail you cannot resolve does
+ * not read as detail — it reads as a smudge over the parts that were legible.
+ *
+ * The switch is automatic because leaving it to the caller means it will be got wrong
+ * exactly once, in a notification, at 24dp.
  */
 @Composable
 internal fun BrandEmblem(
@@ -106,7 +124,7 @@ internal fun BrandEmblem(
 @Composable
 internal fun BrandLockup(
     modifier: Modifier = Modifier,
-    emblemSize: Dp = 44.dp,
+    emblemSize: Dp = 36.dp,
     tone: BrandTone = BrandTone.OnBrand,
     monochromeColour: Color = Color.Unspecified,
 ) {
@@ -124,7 +142,14 @@ internal fun BrandLockup(
             painter = painterResource(R.drawable.brand_wordmark),
             contentDescription = null,
             colorFilter = ColorFilter.tint(wordColour),
-            modifier = Modifier.height(emblemSize * 0.40f),
+            // Six emblems wide, as on the brand sheet — but `weight(fill = false)` and a
+            // Fit scale mean that when the caller asks for an emblem too large for the
+            // screen, the word shrinks to the space there is instead of running off the
+            // right edge. A lockup that clips is worse than a lockup that is small.
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .height(emblemSize * 6f / WORDMARK_ASPECT),
         )
     }
 }
@@ -133,7 +158,7 @@ internal fun BrandLockup(
 @Composable
 internal fun BrandLockupStacked(
     modifier: Modifier = Modifier,
-    emblemSize: Dp = 96.dp,
+    emblemSize: Dp = 88.dp,
     tone: BrandTone = BrandTone.OnBrand,
     monochromeColour: Color = Color.Unspecified,
 ) {
@@ -148,7 +173,12 @@ internal fun BrandLockupStacked(
             painter = painterResource(R.drawable.brand_wordmark),
             contentDescription = null,
             colorFilter = ColorFilter.tint(archColour(tone, monochromeColour)),
-            modifier = Modifier.height(emblemSize * 0.20f),
+            // Two and nine-tenths emblems wide, as on the brand sheet, shrinking to fit
+            // for the same reason as the horizontal lockup.
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(emblemSize * 2.9f / WORDMARK_ASPECT),
         )
     }
 }
@@ -183,7 +213,7 @@ internal fun BrandSplash(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(BrandPalette.SabilGreenDeep),
+            .background(BrandPalette.ForestDeep),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -193,7 +223,7 @@ internal fun BrandSplash(
                 .alpha(progress.value)
                 .scale(0.96f + 0.04f * progress.value),
         ) {
-            BrandLockupStacked(emblemSize = 112.dp, tone = BrandTone.OnBrand)
+            BrandLockupStacked(tone = BrandTone.OnBrand)
         }
     }
 }
@@ -207,17 +237,27 @@ internal fun BrandSplash(
  * `brand/tokens/brand-tokens.json` and restated here.
  */
 internal object BrandPalette {
-    val SabilGreen = Color(0xFF0B3A30)
-    val SabilGreenDeep = Color(0xFF072A22)
-    val MineralGreen = Color(0xFF1F5A4C)
-    val Sage = Color(0xFF7FA98C)
+    /** The ground. Every lockup, every icon, the splash. */
+    val DeepGreen = Color(0xFF0F3D34)
 
-    /** On dark grounds only. 5.44:1 on Sabil Green; 2.06:1 on ivory, which is unusable. */
-    val Brass = Color(0xFFC6A664)
+    /** One step down, for the splash and anywhere the ground needs to recede. */
+    val ForestDeep = Color(0xFF0A2A24)
 
-    /** The accent for light grounds. 4.87:1 on ivory. */
-    val BrassDeep = Color(0xFF836427)
+    val Mineral = Color(0xFF1C574A)
+    val Sage = Color(0xFF6BAA7D)
 
-    val Ivory = Color(0xFFF4F1E8)
-    val Charcoal = Color(0xFF0C1013)
+    /**
+     * The accent, and only ever an accent.
+     *
+     * 6.19:1 on Deep Green, so it is legible as the mark and as the tagline. It is
+     * 2.12:1 on ivory, which is unusable — [GoldDeep] is the light-ground substitute,
+     * and there is no case where picking between them is left to the caller's eye.
+     */
+    val Gold = Color(0xFFD4AF37)
+
+    /** The accent for light grounds. 4.83:1 on ivory. */
+    val GoldDeep = Color(0xFF7A5E15)
+
+    val Ivory = Color(0xFFF5F2E9)
+    val Charcoal = Color(0xFF0D1115)
 }

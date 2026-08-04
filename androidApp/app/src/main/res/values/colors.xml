@@ -2,6 +2,6 @@
 <resources>
     <!-- Matches Sand99 in the Compose light scheme. -->
     <color name="window_background">#FFFBF3</color>
-    <!-- Sabil Green. The brand ground, not the product surface. -->
-    <color name="launcher_background">#0B3A30</color>
+    <!-- Deep Green. The brand ground, not the product surface. -->
+    <color name="launcher_background">#0F3D34</color>
 </resources>

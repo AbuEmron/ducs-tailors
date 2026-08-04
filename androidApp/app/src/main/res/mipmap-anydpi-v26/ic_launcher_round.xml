@@ -5,8 +5,8 @@
     <!--
       A separate drawable rather than reusing the foreground. The themed-icon
       layer is composited in a single tint colour, so a foreground that carries
-      two colours loses the brass opening entirely and comes out as a solid
-      blob. This one is drawn to work in one colour.
+      two colours loses the crescent and the arcade entirely and comes out as
+      a solid blob. This one is drawn to work in one colour.
     -->
     <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
 </adaptive-icon>

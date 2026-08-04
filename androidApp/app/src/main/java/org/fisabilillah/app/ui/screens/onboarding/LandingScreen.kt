@@ -45,8 +45,10 @@ internal fun LandingScreen(
             // The mark, not the word set in the body face. One of the three places in
             // the application where the full lockup appears; see ui/brand/Brand.kt for
             // why there are only three.
+            // 40dp rather than something grander: the wordmark is six emblems wide, so a
+            // 52dp emblem puts "FI SABILILLAH" past the right edge of a 320dp screen.
             BrandLockup(
-                emblemSize = 52.dp,
+                emblemSize = 40.dp,
                 tone = BrandTone.InProduct,
                 modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
             )
