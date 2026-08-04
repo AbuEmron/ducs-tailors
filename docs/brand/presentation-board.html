@@ -1,0 +1,353 @@
+<title>Fi Sabilillah — Visual Identity</title>
+<style>
+:root {
+  --ground:#071A16; --surface:#0C2721; --raised:#113029;
+  --ink:#EFEDE4; --muted:#8FA39B; --rule:rgba(198,166,100,.22);
+  --brass:#C6A664; --green:#0B3A30; --ivory:#F4F1E8;
+  --display: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --pad: clamp(20px, 5vw, 72px);
+}
+@media (prefers-color-scheme: light) {
+  :root { --ground:#F2F0E7; --surface:#FFFFFF; --raised:#FBFAF5;
+           --ink:#0B2019; --muted:#5C6E67; --rule:rgba(11,58,48,.18); }
+}
+:root[data-theme="dark"] { --ground:#071A16; --surface:#0C2721; --raised:#113029;
+  --ink:#EFEDE4; --muted:#8FA39B; --rule:rgba(198,166,100,.22); }
+:root[data-theme="light"] { --ground:#F2F0E7; --surface:#FFFFFF; --raised:#FBFAF5;
+  --ink:#0B2019; --muted:#5C6E67; --rule:rgba(11,58,48,.18); }
+
+* { box-sizing:border-box; }
+body { margin:0; background:var(--ground); color:var(--ink); font-family:var(--body);
+  font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+.wrap { max-width:1180px; margin:0 auto; padding:0 var(--pad); }
+section { padding:clamp(48px,7vw,104px) 0; border-top:1px solid var(--rule); }
+section:first-of-type { border-top:0; }
+.eyebrow { font:600 11px/1 var(--body); letter-spacing:.22em; text-transform:uppercase;
+  color:var(--brass); margin:0 0 18px; }
+h2 { font-family:var(--display); font-weight:400; font-size:clamp(26px,3.4vw,40px);
+  line-height:1.15; margin:0 0 14px; text-wrap:balance; letter-spacing:-.01em; }
+h3 { font-family:var(--display); font-weight:400; font-size:20px; margin:0 0 8px; }
+p { max-width:64ch; color:var(--muted); margin:0 0 14px; }
+p strong, li strong { color:var(--ink); font-weight:600; }
+a { color:var(--brass); }
+code { font-family:var(--mono); font-size:12px; }
+
+/* hero */
+.hero { min-height:88vh; display:grid; place-items:center; text-align:center;
+  padding:clamp(56px,10vh,120px) var(--pad); }
+.hero__mark { width:clamp(140px,22vw,232px); height:auto; display:block; margin:0 auto 34px; }
+.hero__word { width:clamp(240px,42vw,470px); height:auto; display:block; margin:0 auto 26px; }
+.hero__word path { fill:var(--ink); stroke:var(--ink); }
+.hero__rule { width:64px; height:1px; background:var(--brass); margin:0 auto 22px; }
+.hero__tag { font:600 12px/1 var(--body); letter-spacing:.3em; text-transform:uppercase;
+  color:var(--brass); margin:0 0 26px; }
+.hero__thesis { font-family:var(--display); font-size:clamp(17px,2vw,21px); line-height:1.5;
+  color:var(--ink); max-width:52ch; margin:0 auto; }
+
+/* the drawn reveal — the identity's own motion, shown by using it */
+.hero__mark [stroke] { stroke-dasharray:200; stroke-dashoffset:200;
+  animation:draw 1200ms cubic-bezier(.2,.8,.2,1) forwards; }
+.hero__mark [stroke]:nth-of-type(2) { animation-delay:180ms; }
+.hero__mark path[fill]:not([stroke]) { opacity:0; animation:lit 520ms cubic-bezier(.2,.8,.2,1) 780ms forwards; }
+@keyframes draw { to { stroke-dashoffset:0; } }
+@keyframes lit { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion: reduce) {
+  .hero__mark [stroke] { animation:none; stroke-dashoffset:0; }
+  .hero__mark path[fill]:not([stroke]) { animation:none; opacity:1; }
+}
+
+.grid { display:grid; gap:clamp(16px,2vw,26px); }
+.g2 { grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); }
+.g3 { grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); }
+.g4 { grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); }
+
+figure { margin:0; }
+figcaption { margin-top:12px; font-size:13px; color:var(--muted); }
+figcaption b { display:block; color:var(--ink); font-size:14px; font-weight:600; margin-bottom:2px; }
+figcaption span { display:block; }
+
+.tone__art, .badge__art, .mask__art, .wrong__art { background:var(--raised);
+  border:1px solid var(--rule); border-radius:16px; padding:20px; display:grid;
+  place-items:center; }
+.tone__art svg, .badge__art svg, .wrong__art svg { width:100%; max-width:104px; height:auto; }
+.tone--plate .tone__art { background:var(--ivory); }
+
+.size__art { height:172px; display:grid; place-items:center; }
+.size__art svg { width:var(--s); height:var(--s); }
+.size figcaption { text-align:center; font-family:var(--mono); font-size:12px; }
+
+/* adaptive-icon masks */
+.mask__art { position:relative; aspect-ratio:1; padding:0; overflow:hidden; }
+.mask__bg { position:absolute; inset:0; background:var(--green); }
+.mask__fg { position:absolute; inset:0; display:grid; place-items:center; }
+.mask__fg svg { width:56%; height:56%; }
+.mask--circle .mask__bg, .mask--circle .mask__fg { clip-path:circle(50%); }
+.mask--squircle .mask__bg, .mask--squircle .mask__fg { border-radius:38%; }
+.mask--rounded .mask__bg, .mask--rounded .mask__fg { border-radius:22%; }
+.mask--teardrop .mask__bg, .mask--teardrop .mask__fg { border-radius:50% 50% 50% 12%; }
+
+/* swatches */
+.sw__chip { height:104px; border-radius:14px; display:grid; place-items:end start;
+  padding:12px; font-family:var(--mono); font-size:12px; border:1px solid var(--rule); }
+.sw figcaption code { display:block; color:var(--muted); }
+
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--rule); }
+th { font:600 11px/1 var(--body); letter-spacing:.16em; text-transform:uppercase; color:var(--brass); }
+.num { font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.ok { color:#7FA98C; } .mid { color:var(--brass); } .bad { color:#D08A92; font-weight:600; }
+.scroll { overflow-x:auto; }
+
+/* glyph specimen */
+.glyphs { display:flex; flex-wrap:wrap; gap:14px; }
+.glyph { background:var(--raised); border:1px solid var(--rule); border-radius:12px;
+  width:92px; height:104px; display:grid; place-items:center; }
+.glyph svg { width:44px; height:auto; }
+.glyph svg path { fill:var(--ink); stroke:var(--ink); }
+
+.lockup { background:var(--raised); border:1px solid var(--rule); border-radius:18px;
+  padding:clamp(20px,3vw,38px); display:grid; place-items:center; }
+.lockup svg { width:100%; height:auto; max-width:520px; }
+
+.splash { border:1px solid var(--rule); border-radius:20px; overflow:hidden; aspect-ratio:9/16;
+  max-height:520px; display:grid; place-items:center; }
+.splash--dark { background:#072A22; } .splash--light { background:#F4F1E8; }
+.splash__inner { display:grid; place-items:center; gap:20px; padding:24px; }
+.splash__inner svg.m { width:104px; height:104px; }
+.splash__inner svg.w { width:190px; height:auto; }
+.splash--dark svg.w path { fill:#F4F1E8; stroke:#F4F1E8; }
+.splash--light svg.w path { fill:#0B3A30; stroke:#0B3A30; }
+
+/* incorrect use */
+.wrong__art { position:relative; }
+.wrong__art::after { content:""; position:absolute; inset:0; border-radius:16px;
+  border:1px solid #D08A92; }
+.wrong--stretch svg { transform:scaleX(1.7); }
+.wrong--rotate svg { transform:rotate(-17deg); }
+.wrong--recolour svg [stroke] { stroke:#E0457B; } .wrong--recolour svg path[fill]:not([stroke]) { fill:#39D2FF; }
+.wrong--brass { background:var(--ivory) !important; }
+.wrong--brass svg rect { fill:#F4F1E8; }
+.wrong--brass svg [stroke] { stroke:#C6A664; } .wrong--brass svg path[fill]:not([stroke]) { fill:#C6A664; }
+.wrong--glow svg { filter:drop-shadow(0 0 14px #C6A664) drop-shadow(0 0 30px #C6A664); }
+.wrong--crowd { background:
+  repeating-linear-gradient(38deg,#5b4a2e 0 12px,#7a6a3f 12px 24px,#3d5a52 24px 36px) !important; }
+
+.note { background:var(--raised); border:1px solid var(--rule); border-left:2px solid var(--brass);
+  border-radius:0 14px 14px 0; padding:18px 22px; }
+.note p:last-child { margin-bottom:0; }
+ul { color:var(--muted); max-width:64ch; padding-left:1.1em; }
+li { margin-bottom:7px; }
+footer { padding:56px 0 80px; color:var(--muted); font-size:13px; border-top:1px solid var(--rule); }
+</style>
+
+<header class="hero">
+  <div>
+    <svg viewBox="0 0 64 64" class="hero__mark"  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg>
+    <svg viewBox="0 0 922 124" class="hero__word"  aria-hidden="true"><path d="M12.00 12.00 L72.00 12.00 L72.00 26.00 L26.00 26.00 L26.00 55.00 L62.00 55.00 L62.00 69.00 L26.00 69.00 L26.00 112.00 L12.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M94.00 12.00 L108.00 12.00 L108.00 112.00 L94.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M226.00 34.00 C226.00 24.00 217.00 19.00 205.00 19.00 C193.00 19.00 185.00 27.00 185.00 37.00 C185.00 47.00 193.00 53.00 205.00 58.00 C217.00 63.00 226.00 70.00 226.00 82.00 C226.00 94.00 217.00 105.00 205.00 105.00 C193.00 105.00 185.00 98.00 185.00 89.00" fill="none" stroke="#0C1013" stroke-width="14.00" stroke-linecap="butt" stroke-linejoin="round"/><path d="M258.00 112.00 L284.00 12.00 L304.00 12.00 L330.00 112.00 L315.50 112.00 L311.20 94.00 L276.80 94.00 L272.50 112.00 Z M294.00 34.00 L280.20 80.00 L307.80 80.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M352.00 12.00 L390.00 12.00 C402.00 12.00 409.00 19.00 409.00 34.00 C409.00 45.00 404.50 53.00 397.00 56.50 C406.00 59.50 414.00 67.50 414.00 83.00 C414.00 100.00 406.00 112.00 391.00 112.00 L352.00 112.00 Z M366.00 25.00 L390.00 25.00 C396.00 25.00 399.50 30.50 399.50 40.00 C399.50 49.50 396.00 55.00 390.00 55.00 L366.00 55.00 Z M366.00 69.00 L391.00 69.00 C398.00 69.00 403.00 75.00 403.00 84.00 C403.00 93.00 398.00 99.00 391.00 99.00 L366.00 99.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M436.00 12.00 L450.00 12.00 L450.00 112.00 L436.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M472.00 12.00 L486.00 12.00 L486.00 98.00 L530.00 98.00 L530.00 112.00 L472.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M552.00 12.00 L566.00 12.00 L566.00 112.00 L552.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M588.00 12.00 L602.00 12.00 L602.00 98.00 L646.00 98.00 L646.00 112.00 L588.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M668.00 12.00 L682.00 12.00 L682.00 98.00 L726.00 98.00 L726.00 112.00 L668.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M748.00 112.00 L774.00 12.00 L794.00 12.00 L820.00 112.00 L805.50 112.00 L801.20 94.00 L766.80 94.00 L762.50 112.00 Z M784.00 34.00 L770.20 80.00 L797.80 80.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M842.00 12.00 L856.00 12.00 L856.00 55.00 L896.00 55.00 L896.00 12.00 L910.00 12.00 L910.00 112.00 L896.00 112.00 L896.00 69.00 L856.00 69.00 L856.00 112.00 L842.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/></svg>
+    <div class="hero__rule"></div>
+    <p class="hero__tag">Serve &middot; Learn &middot; Build &middot; Give</p>
+    <p class="hero__thesis">Three arches on one baseline, the innermost lit. Looking down a
+      colonnade towards an opening: a way through a sheltering structure. <em>Fi sabilillah</em>
+      means <em>in the path of Allah</em>, and the path is the mark.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <p class="eyebrow">The idea</p>
+  <h2>One silhouette, carrying four things</h2>
+  <div class="grid g2">
+    <div>
+      <p>The <strong>outer arch</strong> is shelter — a threshold, a place that holds people.
+      The <strong>nested arches</strong> are passage: depth, and a way that continues past
+      where you stand. The <strong>lit opening</strong> is what the way is walked towards.
+      Nothing else is in the mark.</p>
+      <p>Two earlier drafts were legible and meant the wrong thing. A tapered stem with a dot
+      above it read as a lowercase <strong>i</strong>. Three receding road markings read as a
+      <strong>hamburger menu</strong>. A nested arch is not a glyph in any alphabet, which is
+      why this one has no competing reading.</p>
+    </div>
+    <div class="note">
+      <h3>What is deliberately absent</h3>
+      <p>No crescent, no star, no dome, no minaret, and no calligraphy.</p>
+      <p>Three of those belong to somebody else's flag. One is a building this platform does
+      not own. The fifth — an approximation of Arabic script that does not resolve into
+      readable words at any size — is the one a Muslim audience notices first and forgives
+      last.</p>
+      <p>The mark never claims religious authority, a ruling, guaranteed reward, or that
+      anyone displaying it has been vetted. The badges say what was checked. The logo says
+      only whose application this is.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">Scale</p>
+  <h2>It has to work at sixteen pixels</h2>
+  <p>Below 32px the middle arch closes against the other two, so the mark switches to a
+  simplified cut with a heavier stroke. That decision is made by the code from the size it
+  is handed, not by the person placing it.</p>
+  <div class="grid g4" style="align-items:end"><figure class="size"><div class="size__art" style="--s:16px"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="6.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/></g><path d="M27.9 48 L27.9 33.4 C27.9 30 29.6 27.1 32 25.6 C34.4 27.1 36.1 30 36.1 33.4 L36.1 48 Z" fill="#C6A664"/></g></svg></div><figcaption>16px</figcaption></figure><figure class="size"><div class="size__art" style="--s:24px"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="6.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/></g><path d="M27.9 48 L27.9 33.4 C27.9 30 29.6 27.1 32 25.6 C34.4 27.1 36.1 30 36.1 33.4 L36.1 48 Z" fill="#C6A664"/></g></svg></div><figcaption>24px</figcaption></figure><figure class="size"><div class="size__art" style="--s:32px"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="6.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/></g><path d="M27.9 48 L27.9 33.4 C27.9 30 29.6 27.1 32 25.6 C34.4 27.1 36.1 30 36.1 33.4 L36.1 48 Z" fill="#C6A664"/></g></svg></div><figcaption>32px</figcaption></figure><figure class="size"><div class="size__art" style="--s:48px"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption>48px</figcaption></figure><figure class="size"><div class="size__art" style="--s:64px"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption>64px</figcaption></figure><figure class="size"><div class="size__art" style="--s:96px"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption>96px</figcaption></figure><figure class="size"><div class="size__art" style="--s:160px"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption>160px</figcaption></figure></div>
+</section>
+
+<section>
+  <p class="eyebrow">Variants</p>
+  <h2>Six tones, one geometry</h2>
+  <div class="grid g3"><figure class="tone"><div class="tone__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption><b>Primary</b><span>Default, on brand grounds</span></figcaption></figure><figure class="tone"><div class="tone__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#F4F1E8"/><g transform="translate(0,0)"><g fill="none" stroke="#0B3A30" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#836427"/></g></svg></div><figcaption><b>Light</b><span>Ivory and white; brass-deep opening</span></figcaption></figure><figure class="tone"><div class="tone__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0C1013"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption><b>Dark</b><span>Charcoal and photography</span></figcaption></figure><figure class="tone"><div class="tone__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0E4861"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption><b>In-product</b><span>On Amanah surfaces, inside the app</span></figcaption></figure><figure class="tone"><div class="tone__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#C6A664" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#F4F1E8"/></g></svg></div><figcaption><b>Gold</b><span>Presentation and foil only</span></figcaption></figure><figure class="tone tone--plate"><div class="tone__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><g transform="translate(0,0)"><g fill="none" stroke="#0C1013" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#0C1013"/></g></svg></div><figcaption><b>Monochrome</b><span>One colour, print, engraving</span></figcaption></figure></div>
+  <div class="grid g2" style="margin-top:34px">
+    <div class="lockup"><svg viewBox="0 0 385 70" class=""  aria-hidden="true"><rect width="385" height="70" fill="#0B3A30"/><g transform="translate(14,6)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g><path d="M100.00 18.25 L118.00 18.25 L118.00 22.45 L104.20 22.45 L104.20 31.15 L115.00 31.15 L115.00 35.35 L104.20 35.35 L104.20 48.25 L100.00 48.25 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M124.60 18.25 L128.80 18.25 L128.80 48.25 L124.60 48.25 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M164.20 24.85 C164.20 21.85 161.50 20.35 157.90 20.35 C154.30 20.35 151.90 22.75 151.90 25.75 C151.90 28.75 154.30 30.55 157.90 32.05 C161.50 33.55 164.20 35.65 164.20 39.25 C164.20 42.85 161.50 46.15 157.90 46.15 C154.30 46.15 151.90 44.05 151.90 41.35" fill="none" stroke="#F4F1E8" stroke-width="4.20" stroke-linecap="butt" stroke-linejoin="round"/><path d="M173.80 48.25 L181.60 18.25 L187.60 18.25 L195.40 48.25 L191.05 48.25 L189.76 42.85 L179.44 42.85 L178.15 48.25 Z M184.60 24.85 L180.46 38.65 L188.74 38.65 Z" fill="#F4F1E8" fill-rule="evenodd"/><path d="M202.00 18.25 L213.40 18.25 C217.00 18.25 219.10 20.35 219.10 24.85 C219.10 28.15 217.75 30.55 215.50 31.60 C218.20 32.50 220.60 34.90 220.60 39.55 C220.60 44.65 218.20 48.25 213.70 48.25 L202.00 48.25 Z M206.20 22.15 L213.40 22.15 C215.20 22.15 216.25 23.80 216.25 26.65 C216.25 29.50 215.20 31.15 213.40 31.15 L206.20 31.15 Z M206.20 35.35 L213.70 35.35 C215.80 35.35 217.30 37.15 217.30 39.85 C217.30 42.55 215.80 44.35 213.70 44.35 L206.20 44.35 Z" fill="#F4F1E8" fill-rule="evenodd"/><path d="M227.20 18.25 L231.40 18.25 L231.40 48.25 L227.20 48.25 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M238.00 18.25 L242.20 18.25 L242.20 44.05 L255.40 44.05 L255.40 48.25 L238.00 48.25 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M262.00 18.25 L266.20 18.25 L266.20 48.25 L262.00 48.25 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M272.80 18.25 L277.00 18.25 L277.00 44.05 L290.20 44.05 L290.20 48.25 L272.80 48.25 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M296.80 18.25 L301.00 18.25 L301.00 44.05 L314.20 44.05 L314.20 48.25 L296.80 48.25 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M320.80 48.25 L328.60 18.25 L334.60 18.25 L342.40 48.25 L338.05 48.25 L336.76 42.85 L326.44 42.85 L325.15 48.25 Z M331.60 24.85 L327.46 38.65 L335.74 38.65 Z" fill="#F4F1E8" fill-rule="evenodd"/><path d="M349.00 18.25 L353.20 18.25 L353.20 31.15 L365.20 31.15 L365.20 18.25 L369.40 18.25 L369.40 48.25 L365.20 48.25 L365.20 35.35 L353.20 35.35 L353.20 48.25 L349.00 48.25 Z" fill="#F4F1E8" fill-rule="nonzero"/></svg></div>
+    <div class="lockup"><svg viewBox="0 0 246 158" class=""  aria-hidden="true"><rect width="246" height="158" fill="#0B3A30"/><g transform="translate(68.38,1.20) scale(1.7)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g><g transform="translate(24.00,118.40)"><path d="M0.00 0.00 L13.20 0.00 L13.20 3.08 L3.08 3.08 L3.08 9.46 L11.00 9.46 L11.00 12.54 L3.08 12.54 L3.08 22.00 L0.00 22.00 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M18.04 0.00 L21.12 0.00 L21.12 22.00 L18.04 22.00 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M47.08 4.84 C47.08 2.64 45.10 1.54 42.46 1.54 C39.82 1.54 38.06 3.30 38.06 5.50 C38.06 7.70 39.82 9.02 42.46 10.12 C45.10 11.22 47.08 12.76 47.08 15.40 C47.08 18.04 45.10 20.46 42.46 20.46 C39.82 20.46 38.06 18.92 38.06 16.94" fill="none" stroke="#F4F1E8" stroke-width="3.08" stroke-linecap="butt" stroke-linejoin="round"/><path d="M54.12 22.00 L59.84 0.00 L64.24 0.00 L69.96 22.00 L66.77 22.00 L65.82 18.04 L58.26 18.04 L57.31 22.00 Z M62.04 4.84 L59.00 14.96 L65.08 14.96 Z" fill="#F4F1E8" fill-rule="evenodd"/><path d="M74.80 0.00 L83.16 0.00 C85.80 0.00 87.34 1.54 87.34 4.84 C87.34 7.26 86.35 9.02 84.70 9.79 C86.68 10.45 88.44 12.21 88.44 15.62 C88.44 19.36 86.68 22.00 83.38 22.00 L74.80 22.00 Z M77.88 2.86 L83.16 2.86 C84.48 2.86 85.25 4.07 85.25 6.16 C85.25 8.25 84.48 9.46 83.16 9.46 L77.88 9.46 Z M77.88 12.54 L83.38 12.54 C84.92 12.54 86.02 13.86 86.02 15.84 C86.02 17.82 84.92 19.14 83.38 19.14 L77.88 19.14 Z" fill="#F4F1E8" fill-rule="evenodd"/><path d="M93.28 0.00 L96.36 0.00 L96.36 22.00 L93.28 22.00 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M101.20 0.00 L104.28 0.00 L104.28 18.92 L113.96 18.92 L113.96 22.00 L101.20 22.00 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M118.80 0.00 L121.88 0.00 L121.88 22.00 L118.80 22.00 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M126.72 0.00 L129.80 0.00 L129.80 18.92 L139.48 18.92 L139.48 22.00 L126.72 22.00 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M144.32 0.00 L147.40 0.00 L147.40 18.92 L157.08 18.92 L157.08 22.00 L144.32 22.00 Z" fill="#F4F1E8" fill-rule="nonzero"/><path d="M161.92 22.00 L167.64 0.00 L172.04 0.00 L177.76 22.00 L174.57 22.00 L173.62 18.04 L166.06 18.04 L165.11 22.00 Z M169.84 4.84 L166.80 14.96 L172.88 14.96 Z" fill="#F4F1E8" fill-rule="evenodd"/><path d="M182.60 0.00 L185.68 0.00 L185.68 9.46 L194.48 9.46 L194.48 0.00 L197.56 0.00 L197.56 22.00 L194.48 22.00 L194.48 12.54 L185.68 12.54 L185.68 22.00 L182.60 22.00 Z" fill="#F4F1E8" fill-rule="nonzero"/></g></svg></div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">App icon</p>
+  <h2>Every mask the platform will cut</h2>
+  <p>The adaptive foreground carries <strong>no baked corner radius</strong> — the launcher
+  applies the mask, and a pre-rounded foreground gets rounded twice. Shown here in the
+  monochrome cut, which is what a themed icon actually renders.</p>
+  <div class="grid g4"><figure class="mask"><div class="mask__art mask--circle"><div class="mask__bg"></div><div class="mask__fg"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><g transform="translate(0,0)"><g fill="none" stroke="#FFFFFF" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#FFFFFF"/></g></svg></div></div><figcaption><b>Circle</b><span>Pixel, most launchers</span></figcaption></figure><figure class="mask"><div class="mask__art mask--squircle"><div class="mask__bg"></div><div class="mask__fg"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><g transform="translate(0,0)"><g fill="none" stroke="#FFFFFF" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#FFFFFF"/></g></svg></div></div><figcaption><b>Squircle</b><span>Samsung One UI</span></figcaption></figure><figure class="mask"><div class="mask__art mask--rounded"><div class="mask__bg"></div><div class="mask__fg"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><g transform="translate(0,0)"><g fill="none" stroke="#FFFFFF" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#FFFFFF"/></g></svg></div></div><figcaption><b>Rounded square</b><span>iOS, and Android's default</span></figcaption></figure><figure class="mask"><div class="mask__art mask--teardrop"><div class="mask__bg"></div><div class="mask__fg"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><g transform="translate(0,0)"><g fill="none" stroke="#FFFFFF" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#FFFFFF"/></g></svg></div></div><figcaption><b>Teardrop</b><span>Some OEM skins</span></figcaption></figure></div>
+</section>
+
+<section>
+  <p class="eyebrow">Colour</p>
+  <h2>Two palettes, on purpose</h2>
+  <p>The brand palette is deep green and brass. The <strong>product</strong> palette — what
+  the application's screens are painted in — is the Amanah harbour blue. Forcing one to be
+  the other makes both worse: the green cannot carry interface text at the ratios a UI
+  needs, and the blue does not read as an institution on a shelf of app icons. They meet in
+  three places: splash, sidebar mark, app icon.</p>
+  <div class="grid g3"><figure class="sw">
+      <div class="sw__chip" style="background:#0B3A30;color:#F4F1E8">#0B3A30</div>
+      <figcaption><b>sabil-green</b><span>The primary. Deep enough to sit under brass without the brass glaring.</span>
+      <code>rgb(11, 58, 48)</code>
+      <code>167.2&deg; 68.1% 13.5%</code>
+      <code>cmyk 81 0 17 77</code></figcaption></figure><figure class="sw">
+      <div class="sw__chip" style="background:#072A22;color:#F4F1E8">#072A22</div>
+      <figcaption><b>sabil-green-deep</b><span>Splash and immersive backgrounds only. Not a surface colour.</span>
+      <code>rgb(7, 42, 34)</code>
+      <code>166.3&deg; 71.4% 9.6%</code>
+      <code>cmyk 83 0 19 84</code></figcaption></figure><figure class="sw">
+      <div class="sw__chip" style="background:#1F5A4C;color:#F4F1E8">#1F5A4C</div>
+      <figcaption><b>mineral-green</b><span>Raised surfaces on a green ground; the second step of depth.</span>
+      <code>rgb(31, 90, 76)</code>
+      <code>165.8&deg; 48.8% 23.7%</code>
+      <code>cmyk 66 0 16 65</code></figcaption></figure><figure class="sw">
+      <div class="sw__chip" style="background:#7FA98C;color:#0B3A30">#7FA98C</div>
+      <figcaption><b>sage</b><span>Supporting tint. Dividers and quiet states on green.</span>
+      <code>rgb(127, 169, 140)</code>
+      <code>138.6&deg; 19.6% 58.0%</code>
+      <code>cmyk 25 0 17 34</code></figcaption></figure><figure class="sw">
+      <div class="sw__chip" style="background:#C6A664;color:#0B3A30">#C6A664</div>
+      <figcaption><b>brass</b><span>The accent, on dark grounds only. 5.44:1 on sabil-green.</span>
+      <code>rgb(198, 166, 100)</code>
+      <code>40.4&deg; 46.2% 58.4%</code>
+      <code>cmyk 0 16 49 22</code></figcaption></figure><figure class="sw">
+      <div class="sw__chip" style="background:#836427;color:#F4F1E8">#836427</div>
+      <figcaption><b>brass-deep</b><span>The accent for light grounds. Brass on ivory is 2.06:1 and illegible;</span>
+      <code>rgb(131, 100, 39)</code>
+      <code>39.8&deg; 54.1% 33.3%</code>
+      <code>cmyk 0 24 70 49</code></figcaption></figure><figure class="sw">
+      <div class="sw__chip" style="background:#F4F1E8;color:#0B3A30">#F4F1E8</div>
+      <figcaption><b>ivory</b><span>The light ground and the mark on dark grounds.</span>
+      <code>rgb(244, 241, 232)</code>
+      <code>45.0&deg; 35.3% 93.3%</code>
+      <code>cmyk 0 1 5 4</code></figcaption></figure><figure class="sw">
+      <div class="sw__chip" style="background:#0C1013;color:#F4F1E8">#0C1013</div>
+      <figcaption><b>charcoal</b><span>One-colour dark. Print, foil blocking, and the monochrome mark.</span>
+      <code>rgb(12, 16, 19)</code>
+      <code>205.7&deg; 22.6% 6.1%</code>
+      <code>cmyk 37 16 0 93</code></figcaption></figure><figure class="sw">
+      <div class="sw__chip" style="background:#64727C;color:#F4F1E8">#64727C</div>
+      <figcaption><b>stone</b><span>Neutral text and secondary rules.</span>
+      <code>rgb(100, 114, 124)</code>
+      <code>205.0&deg; 10.7% 43.9%</code>
+      <code>cmyk 19 8 0 51</code></figcaption></figure></div>
+  <h3 style="margin-top:40px">Measured, not assumed</h3>
+  <div class="scroll"><table><thead><tr><th>Pair</th><th>Ratio</th><th>Verdict</th></tr></thead>
+  <tbody><tr><td>ivory on sabil green</td><td class="num">11.19:1</td><td class="ok">AA text</td></tr><tr><td>brass on sabil green</td><td class="num">5.44:1</td><td class="ok">AA text</td></tr><tr><td>brass on ivory</td><td class="num">2.06:1</td><td class="bad">fails — never</td></tr><tr><td>brass deep on ivory</td><td class="num">4.87:1</td><td class="ok">AA text</td></tr><tr><td>sabil green on ivory</td><td class="num">11.19:1</td><td class="ok">AA text</td></tr><tr><td>ivory on charcoal</td><td class="num">16.92:1</td><td class="ok">AA text</td></tr></tbody></table></div>
+  <p style="margin-top:14px"><strong>Brass never touches a light background.</strong> On ivory
+  it is 2.06:1. Light grounds use brass-deep at 4.87:1, and every generated light-tone asset
+  already does.</p>
+</section>
+
+<section>
+  <p class="eyebrow">Typography</p>
+  <h2>The wordmark is drawn, not typeset</h2>
+  <p>&ldquo;FI SABILILLAH&rdquo; needs seven unique capitals. Drawing them removes the font
+  dependency from every SVG, removes the licensing question about embedding a commercial face
+  in a trademark, and lets the terminals be tuned to the emblem. The reference set its
+  wordmark in Playfair Display, whose hairlines vanish below about 18px — which is most of
+  the places a wordmark appears on a phone.</p>
+  <div class="glyphs"><div class="glyph"><svg viewBox="-4 -4 68.0 108.0" aria-hidden="true"><path d="M0.00 0.00 L60.00 0.00 L60.00 14.00 L14.00 14.00 L14.00 43.00 L50.00 43.00 L50.00 57.00 L14.00 57.00 L14.00 100.00 L0.00 100.00 Z" fill="#000" fill-rule="nonzero"/></svg></div><div class="glyph"><svg viewBox="-4 -4 22.0 108.0" aria-hidden="true"><path d="M0.00 0.00 L14.00 0.00 L14.00 100.00 L0.00 100.00 Z" fill="#000" fill-rule="nonzero"/></svg></div><div class="glyph"><svg viewBox="-4 -4 70.0 108.0" aria-hidden="true"><path d="M52.00 22.00 C52.00 12.00 43.00 7.00 31.00 7.00 C19.00 7.00 11.00 15.00 11.00 25.00 C11.00 35.00 19.00 41.00 31.00 46.00 C43.00 51.00 52.00 58.00 52.00 70.00 C52.00 82.00 43.00 93.00 31.00 93.00 C19.00 93.00 11.00 86.00 11.00 77.00" fill="none" stroke="#000" stroke-width="14.0" stroke-linecap="butt" stroke-linejoin="round"/></svg></div><div class="glyph"><svg viewBox="-4 -4 80.0 108.0" aria-hidden="true"><path d="M0.00 100.00 L26.00 0.00 L46.00 0.00 L72.00 100.00 L57.50 100.00 L53.20 82.00 L18.80 82.00 L14.50 100.00 Z M36.00 22.00 L22.20 68.00 L49.80 68.00 Z" fill="#000" fill-rule="evenodd"/></svg></div><div class="glyph"><svg viewBox="-4 -4 70.0 108.0" aria-hidden="true"><path d="M0.00 0.00 L38.00 0.00 C50.00 0.00 57.00 7.00 57.00 22.00 C57.00 33.00 52.50 41.00 45.00 44.50 C54.00 47.50 62.00 55.50 62.00 71.00 C62.00 88.00 54.00 100.00 39.00 100.00 L0.00 100.00 Z M14.00 13.00 L38.00 13.00 C44.00 13.00 47.50 18.50 47.50 28.00 C47.50 37.50 44.00 43.00 38.00 43.00 L14.00 43.00 Z M14.00 57.00 L39.00 57.00 C46.00 57.00 51.00 63.00 51.00 72.00 C51.00 81.00 46.00 87.00 39.00 87.00 L14.00 87.00 Z" fill="#000" fill-rule="evenodd"/></svg></div><div class="glyph"><svg viewBox="-4 -4 66.0 108.0" aria-hidden="true"><path d="M0.00 0.00 L14.00 0.00 L14.00 86.00 L58.00 86.00 L58.00 100.00 L0.00 100.00 Z" fill="#000" fill-rule="nonzero"/></svg></div><div class="glyph"><svg viewBox="-4 -4 76.0 108.0" aria-hidden="true"><path d="M0.00 0.00 L14.00 0.00 L14.00 43.00 L54.00 43.00 L54.00 0.00 L68.00 0.00 L68.00 100.00 L54.00 100.00 L54.00 57.00 L14.00 57.00 L14.00 100.00 L0.00 100.00 Z" fill="#000" fill-rule="nonzero"/></svg></div></div>
+  <div class="lockup" style="margin-top:28px"><svg viewBox="0 0 922 124" class=""  aria-hidden="true"><path d="M12.00 12.00 L72.00 12.00 L72.00 26.00 L26.00 26.00 L26.00 55.00 L62.00 55.00 L62.00 69.00 L26.00 69.00 L26.00 112.00 L12.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M94.00 12.00 L108.00 12.00 L108.00 112.00 L94.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M226.00 34.00 C226.00 24.00 217.00 19.00 205.00 19.00 C193.00 19.00 185.00 27.00 185.00 37.00 C185.00 47.00 193.00 53.00 205.00 58.00 C217.00 63.00 226.00 70.00 226.00 82.00 C226.00 94.00 217.00 105.00 205.00 105.00 C193.00 105.00 185.00 98.00 185.00 89.00" fill="none" stroke="#0C1013" stroke-width="14.00" stroke-linecap="butt" stroke-linejoin="round"/><path d="M258.00 112.00 L284.00 12.00 L304.00 12.00 L330.00 112.00 L315.50 112.00 L311.20 94.00 L276.80 94.00 L272.50 112.00 Z M294.00 34.00 L280.20 80.00 L307.80 80.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M352.00 12.00 L390.00 12.00 C402.00 12.00 409.00 19.00 409.00 34.00 C409.00 45.00 404.50 53.00 397.00 56.50 C406.00 59.50 414.00 67.50 414.00 83.00 C414.00 100.00 406.00 112.00 391.00 112.00 L352.00 112.00 Z M366.00 25.00 L390.00 25.00 C396.00 25.00 399.50 30.50 399.50 40.00 C399.50 49.50 396.00 55.00 390.00 55.00 L366.00 55.00 Z M366.00 69.00 L391.00 69.00 C398.00 69.00 403.00 75.00 403.00 84.00 C403.00 93.00 398.00 99.00 391.00 99.00 L366.00 99.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M436.00 12.00 L450.00 12.00 L450.00 112.00 L436.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M472.00 12.00 L486.00 12.00 L486.00 98.00 L530.00 98.00 L530.00 112.00 L472.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M552.00 12.00 L566.00 12.00 L566.00 112.00 L552.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M588.00 12.00 L602.00 12.00 L602.00 98.00 L646.00 98.00 L646.00 112.00 L588.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M668.00 12.00 L682.00 12.00 L682.00 98.00 L726.00 98.00 L726.00 112.00 L668.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M748.00 112.00 L774.00 12.00 L794.00 12.00 L820.00 112.00 L805.50 112.00 L801.20 94.00 L766.80 94.00 L762.50 112.00 Z M784.00 34.00 L770.20 80.00 L797.80 80.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M842.00 12.00 L856.00 12.00 L856.00 55.00 L896.00 55.00 L896.00 12.00 L910.00 12.00 L910.00 112.00 L896.00 112.00 L896.00 69.00 L856.00 69.00 L856.00 112.00 L842.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/></svg></div>
+</section>
+
+<section>
+  <p class="eyebrow">Badges</p>
+  <h2>Seven facts, one shelter</h2>
+  <p>All seven share the emblem's own arch, closed at the foot. A badge states what was
+  checked — never that something is religiously approved, safe, or guaranteed.</p>
+  <div class="grid g3"><figure class="badge"><div class="badge__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><path d="M32 6 C33.4 6 34.6 6.6 36.2 7.7 C46.4 14.6 55 23.8 55 34.5 L55 47 C55 54.2 49.2 60 42 60 L22 60 C14.8 60 9 54.2 9 47 L9 34.5 C9 23.8 17.6 14.6 27.8 7.7 C29.4 6.6 30.6 6 32 6 Z" fill="#0B3A30"/><g fill="none" stroke="#F4F1E8" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 34 L29 41.5 L43 26"/></g></svg></div><figcaption><b>Verified organisation</b><span>Registration documents were seen by a named reviewer.</span></figcaption></figure><figure class="badge"><div class="badge__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><path d="M32 6 C33.4 6 34.6 6.6 36.2 7.7 C46.4 14.6 55 23.8 55 34.5 L55 47 C55 54.2 49.2 60 42 60 L22 60 C14.8 60 9 54.2 9 47 L9 34.5 C9 23.8 17.6 14.6 27.8 7.7 C29.4 6.6 30.6 6 32 6 Z" fill="#0B3A30"/><g fill="none" stroke="#F4F1E8" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"><path d="M32 25 C27.5 22 22 21 17 22 L17 41 C22 40 27.5 41 32 44"/><path d="M32 25 C36.5 22 42 21 47 22 L47 41 C42 40 36.5 41 32 44"/></g></svg></div><figcaption><b>Learning</b><span>A learning offering. Not an endorsement of its content.</span></figcaption></figure><figure class="badge"><div class="badge__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><path d="M32 6 C33.4 6 34.6 6.6 36.2 7.7 C46.4 14.6 55 23.8 55 34.5 L55 47 C55 54.2 49.2 60 42 60 L22 60 C14.8 60 9 54.2 9 47 L9 34.5 C9 23.8 17.6 14.6 27.8 7.7 C29.4 6.6 30.6 6 32 6 Z" fill="#0B3A30"/><g fill="none" stroke="#F4F1E8" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 44 L20 33 C20 27 25.5 22 32 19 C38.5 22 44 27 44 33 L44 44"/></g></svg></div><figcaption><b>Service</b><span>A service opportunity. The emblem's own arch.</span></figcaption></figure><figure class="badge"><div class="badge__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><path d="M32 6 C33.4 6 34.6 6.6 36.2 7.7 C46.4 14.6 55 23.8 55 34.5 L55 47 C55 54.2 49.2 60 42 60 L22 60 C14.8 60 9 54.2 9 47 L9 34.5 C9 23.8 17.6 14.6 27.8 7.7 C29.4 6.6 30.6 6 32 6 Z" fill="#0B3A30"/><g fill="none" stroke="#F4F1E8" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="24.5" r="4.4" fill="#F4F1E8"/><circle cx="22" cy="41" r="4.4" fill="#F4F1E8"/><circle cx="42" cy="41" r="4.4" fill="#F4F1E8"/></g></svg></div><figcaption><b>Community</b><span>A community space. Three equal dots, unranked.</span></figcaption></figure><figure class="badge"><div class="badge__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><path d="M32 6 C33.4 6 34.6 6.6 36.2 7.7 C46.4 14.6 55 23.8 55 34.5 L55 47 C55 54.2 49.2 60 42 60 L22 60 C14.8 60 9 54.2 9 47 L9 34.5 C9 23.8 17.6 14.6 27.8 7.7 C29.4 6.6 30.6 6 32 6 Z" fill="#0B3A30"/><g fill="none" stroke="#F4F1E8" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"><path d="M24.5 31 L24.5 26.5 C24.5 22.4 27.9 19 32 19 C36.1 19 39.5 22.4 39.5 26.5 L39.5 31"/><rect x="20.5" y="31" width="23" height="16.5" rx="4.4" fill="#F4F1E8"/></g></svg></div><figcaption><b>Safety</b><span>Privacy and restriction surfaces.</span></figcaption></figure><figure class="badge"><div class="badge__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><path d="M32 6 C33.4 6 34.6 6.6 36.2 7.7 C46.4 14.6 55 23.8 55 34.5 L55 47 C55 54.2 49.2 60 42 60 L22 60 C14.8 60 9 54.2 9 47 L9 34.5 C9 23.8 17.6 14.6 27.8 7.7 C29.4 6.6 30.6 6 32 6 Z" fill="#0B3A30"/><g fill="none" stroke="#F4F1E8" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="24.5" r="5.2" fill="#F4F1E8"/><path d="M17.5 36.5 C17.5 45.5 24 50 32 50 C40 50 46.5 45.5 46.5 36.5"/></g></svg></div><figcaption><b>Donation</b><span>A campaign that has passed financial review.</span></figcaption></figure><figure class="badge"><div class="badge__art"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><path d="M32 6 C33.4 6 34.6 6.6 36.2 7.7 C46.4 14.6 55 23.8 55 34.5 L55 47 C55 54.2 49.2 60 42 60 L22 60 C14.8 60 9 54.2 9 47 L9 34.5 C9 23.8 17.6 14.6 27.8 7.7 C29.4 6.6 30.6 6 32 6 Z" fill="#0B3A30"/><g fill="none" stroke="#F4F1E8" stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 30 C17 22.5 23.5 17 32 17 C40.5 17 47 22.5 47 30"/><circle cx="24" cy="42" r="5" fill="#F4F1E8"/><circle cx="40" cy="42" r="5" fill="#F4F1E8"/></g></svg></div><figcaption><b>Family introduction</b><span>Two parties, and a third presence over both.</span></figcaption></figure></div>
+</section>
+
+<section>
+  <p class="eyebrow">Splash &amp; motion</p>
+  <h2>One gesture, then still</h2>
+  <div class="grid g2">
+    <div class="grid g2">
+      <div class="splash splash--dark"><div class="splash__inner">
+        <svg viewBox="0 0 64 64" class="m" aria-hidden="true"><g transform="translate(0,0)"><g fill="none" stroke="#FFFFFF" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#FFFFFF"/></g></svg>
+        <svg viewBox="0 0 922 124" class="w" aria-hidden="true"><path d="M12.00 12.00 L72.00 12.00 L72.00 26.00 L26.00 26.00 L26.00 55.00 L62.00 55.00 L62.00 69.00 L26.00 69.00 L26.00 112.00 L12.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M94.00 12.00 L108.00 12.00 L108.00 112.00 L94.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M226.00 34.00 C226.00 24.00 217.00 19.00 205.00 19.00 C193.00 19.00 185.00 27.00 185.00 37.00 C185.00 47.00 193.00 53.00 205.00 58.00 C217.00 63.00 226.00 70.00 226.00 82.00 C226.00 94.00 217.00 105.00 205.00 105.00 C193.00 105.00 185.00 98.00 185.00 89.00" fill="none" stroke="#0C1013" stroke-width="14.00" stroke-linecap="butt" stroke-linejoin="round"/><path d="M258.00 112.00 L284.00 12.00 L304.00 12.00 L330.00 112.00 L315.50 112.00 L311.20 94.00 L276.80 94.00 L272.50 112.00 Z M294.00 34.00 L280.20 80.00 L307.80 80.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M352.00 12.00 L390.00 12.00 C402.00 12.00 409.00 19.00 409.00 34.00 C409.00 45.00 404.50 53.00 397.00 56.50 C406.00 59.50 414.00 67.50 414.00 83.00 C414.00 100.00 406.00 112.00 391.00 112.00 L352.00 112.00 Z M366.00 25.00 L390.00 25.00 C396.00 25.00 399.50 30.50 399.50 40.00 C399.50 49.50 396.00 55.00 390.00 55.00 L366.00 55.00 Z M366.00 69.00 L391.00 69.00 C398.00 69.00 403.00 75.00 403.00 84.00 C403.00 93.00 398.00 99.00 391.00 99.00 L366.00 99.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M436.00 12.00 L450.00 12.00 L450.00 112.00 L436.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M472.00 12.00 L486.00 12.00 L486.00 98.00 L530.00 98.00 L530.00 112.00 L472.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M552.00 12.00 L566.00 12.00 L566.00 112.00 L552.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M588.00 12.00 L602.00 12.00 L602.00 98.00 L646.00 98.00 L646.00 112.00 L588.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M668.00 12.00 L682.00 12.00 L682.00 98.00 L726.00 98.00 L726.00 112.00 L668.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M748.00 112.00 L774.00 12.00 L794.00 12.00 L820.00 112.00 L805.50 112.00 L801.20 94.00 L766.80 94.00 L762.50 112.00 Z M784.00 34.00 L770.20 80.00 L797.80 80.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M842.00 12.00 L856.00 12.00 L856.00 55.00 L896.00 55.00 L896.00 12.00 L910.00 12.00 L910.00 112.00 L896.00 112.00 L896.00 69.00 L856.00 69.00 L856.00 112.00 L842.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/></svg>
+      </div></div>
+      <div class="splash splash--light"><div class="splash__inner">
+        <svg viewBox="0 0 64 64" class="m" aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#F4F1E8"/><g transform="translate(0,0)"><g fill="none" stroke="#0B3A30" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#836427"/></g></svg>
+        <svg viewBox="0 0 922 124" class="w" aria-hidden="true"><path d="M12.00 12.00 L72.00 12.00 L72.00 26.00 L26.00 26.00 L26.00 55.00 L62.00 55.00 L62.00 69.00 L26.00 69.00 L26.00 112.00 L12.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M94.00 12.00 L108.00 12.00 L108.00 112.00 L94.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M226.00 34.00 C226.00 24.00 217.00 19.00 205.00 19.00 C193.00 19.00 185.00 27.00 185.00 37.00 C185.00 47.00 193.00 53.00 205.00 58.00 C217.00 63.00 226.00 70.00 226.00 82.00 C226.00 94.00 217.00 105.00 205.00 105.00 C193.00 105.00 185.00 98.00 185.00 89.00" fill="none" stroke="#0C1013" stroke-width="14.00" stroke-linecap="butt" stroke-linejoin="round"/><path d="M258.00 112.00 L284.00 12.00 L304.00 12.00 L330.00 112.00 L315.50 112.00 L311.20 94.00 L276.80 94.00 L272.50 112.00 Z M294.00 34.00 L280.20 80.00 L307.80 80.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M352.00 12.00 L390.00 12.00 C402.00 12.00 409.00 19.00 409.00 34.00 C409.00 45.00 404.50 53.00 397.00 56.50 C406.00 59.50 414.00 67.50 414.00 83.00 C414.00 100.00 406.00 112.00 391.00 112.00 L352.00 112.00 Z M366.00 25.00 L390.00 25.00 C396.00 25.00 399.50 30.50 399.50 40.00 C399.50 49.50 396.00 55.00 390.00 55.00 L366.00 55.00 Z M366.00 69.00 L391.00 69.00 C398.00 69.00 403.00 75.00 403.00 84.00 C403.00 93.00 398.00 99.00 391.00 99.00 L366.00 99.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M436.00 12.00 L450.00 12.00 L450.00 112.00 L436.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M472.00 12.00 L486.00 12.00 L486.00 98.00 L530.00 98.00 L530.00 112.00 L472.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M552.00 12.00 L566.00 12.00 L566.00 112.00 L552.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M588.00 12.00 L602.00 12.00 L602.00 98.00 L646.00 98.00 L646.00 112.00 L588.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M668.00 12.00 L682.00 12.00 L682.00 98.00 L726.00 98.00 L726.00 112.00 L668.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/><path d="M748.00 112.00 L774.00 12.00 L794.00 12.00 L820.00 112.00 L805.50 112.00 L801.20 94.00 L766.80 94.00 L762.50 112.00 Z M784.00 34.00 L770.20 80.00 L797.80 80.00 Z" fill="#0C1013" fill-rule="evenodd"/><path d="M842.00 12.00 L856.00 12.00 L856.00 55.00 L896.00 55.00 L896.00 12.00 L910.00 12.00 L910.00 112.00 L896.00 112.00 L896.00 69.00 L856.00 69.00 L856.00 112.00 L842.00 112.00 Z" fill="#0C1013" fill-rule="nonzero"/></svg>
+      </div></div>
+    </div>
+    <div>
+      <p>The arches draw in, the opening lights, and it stops — 1.2 seconds end to end on the
+      Amanah curve. The mark at the top of this page is running it.</p>
+      <p>Forbidden without exception: spinning, flashing, looping, confetti, particles, glow
+      pulses, and any animation that plays on completing an act of service. A record of
+      service is between a person and their Lord; animating it turns it into a performance.</p>
+      <p>Under reduced motion the animation is <strong>removed, not shortened</strong>. Somebody
+      who asked the system for no motion asked for no motion.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">Incorrect use</p>
+  <h2>Six ways to ruin it</h2>
+  <div class="grid g3"><figure class="wrong"><div class="wrong__art wrong--stretch"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption><b>Stretched</b><span>The proportions are the mark.</span></figcaption></figure><figure class="wrong"><div class="wrong__art wrong--rotate"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption><b>Rotated</b><span>An arch that is not upright is not an arch.</span></figcaption></figure><figure class="wrong"><div class="wrong__art wrong--recolour"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption><b>Arbitrarily recoloured</b><span>Tones are listed. That list is the whole list.</span></figcaption></figure><figure class="wrong"><div class="wrong__art wrong--brass"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption><b>Brass on ivory</b><span>2.06:1. Unreadable, and the fastest way to look cheap.</span></figcaption></figure><figure class="wrong"><div class="wrong__art wrong--glow"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption><b>Glow added</b><span>No bevel, no shadow, no metallic gradient.</span></figcaption></figure><figure class="wrong"><div class="wrong__art wrong--crowd"><svg viewBox="0 0 64 64" class=""  aria-hidden="true"><rect width="64" height="64" rx="14.08" fill="#0B3A30"/><g transform="translate(0,0)"><g fill="none" stroke="#F4F1E8" stroke-width="5.0" stroke-linecap="round" stroke-linejoin="round"><path d="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"/><path d="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"/></g><path d="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z" fill="#C6A664"/></g></svg></div><figcaption><b>On busy imagery</b><span>Use a plate, or the monochrome mark.</span></figcaption></figure></div>
+</section>
+
+<section>
+  <p class="eyebrow">Honest notes</p>
+  <h2>What has not been verified</h2>
+  <ul>
+    <li><strong>Nothing here has been seen on a device.</strong> Every mark was rendered and
+    inspected as an image. Colour on an OLED panel, the icon against a real wallpaper, and
+    the themed tint on a specific OEM skin are all unverified.</li>
+    <li><strong>No Arabic appears anywhere in this identity</strong>, deliberately. If it is
+    ever added it must be real Unicode Arabic in a shaped Arabic face, set by a native
+    reader, and never a Latin face styled to look Arabic.</li>
+    <li><strong>No trademark is registered.</strong> <em>Fi Sabilillah</em> is a common Arabic
+    phrase and may be hard to register as a word mark; the emblem is original work and is the
+    stronger candidate. Take advice before filing.</li>
+    <li><strong>Scholarly review is recommended before launch</strong> on the use of the
+    phrase as a product name. This board asserts that the marks claim no religious authority;
+    a qualified scholar should confirm the naming.</li>
+  </ul>
+</section>
+
+<footer class="wrap">
+  Every asset on this page is generated by <code>tools/brand/build.py</code> from one
+  geometry source and checked by <code>tools/brand/validate.py</code> — 149 checks, 0
+  failures. Nothing under <code>brand/</code> is edited by hand.
+</footer>
+</div>

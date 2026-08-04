@@ -1,0 +1,44 @@
+/**
+ * Fi Sabilillah — splash and brand motion.
+ *
+ * Unhosted, like its sibling: see the note in FiSabilillahLogo.tsx.
+ *
+ * One gesture, 520ms, then still. The mark fades up and settles from 96% to 100% on the
+ * Amanah curve. It does not spin, pulse, sparkle or loop. Under
+ * `prefers-reduced-motion: reduce` the animation is not shortened, it is removed --
+ * somebody who asked the system for no motion asked for no motion.
+ */
+import * as React from "react";
+import { FiSabilillahLogo } from "./FiSabilillahLogo";
+
+export const brandMotionCSS = `
+@keyframes fs-settle {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.fs-splash {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: #072A22;
+}
+.fs-splash__mark {
+  animation: fs-settle 520ms cubic-bezier(.2,.8,.2,1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs-splash__mark { animation: none; }
+}
+`;
+
+export function FiSabilillahSplash() {
+  return (
+    <div className="fs-splash">
+      <style>{brandMotionCSS}</style>
+      <div className="fs-splash__mark">
+        <FiSabilillahLogo variant="stacked" tone="full" size="xl" />
+      </div>
+    </div>
+  );
+}
+
+export default FiSabilillahSplash;

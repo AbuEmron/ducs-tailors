@@ -12,18 +12,18 @@
         android:translateY="24.025">
         <path
             android:pathData="M16 48 L16 26 C16 18 23 11 32 6.5 C41 11 48 18 48 26 L48 48"
-            android:strokeColor="#F4F1E8"
+            android:strokeColor="#FFFFFF"
             android:strokeWidth="5.0"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
         <path
             android:pathData="M23.5 48 L23.5 31 C23.5 26 27 21.5 32 19 C37 21.5 40.5 26 40.5 31 L40.5 48"
-            android:strokeColor="#F4F1E8"
+            android:strokeColor="#FFFFFF"
             android:strokeWidth="5.0"
             android:strokeLineCap="round"
             android:strokeLineJoin="round" />
         <path
             android:pathData="M28.7 48 L28.7 34.2 C28.7 31.2 30.1 28.7 32 27.4 C33.9 28.7 35.3 31.2 35.3 34.2 L35.3 48 Z"
-            android:fillColor="#C6A664" />
+            android:fillColor="#FFFFFF" />
     </group>
 </vector>

@@ -1,0 +1,321 @@
+{
+  "brand": {
+    "sabil-green": {
+      "hex": "#0B3A30",
+      "rgb": [
+        11,
+        58,
+        48
+      ],
+      "hsl": [
+        167.2,
+        68.1,
+        13.5
+      ],
+      "cmyk": [
+        81,
+        0,
+        17,
+        77
+      ],
+      "usage": "The primary. Deep enough to sit under brass without the brass glaring."
+    },
+    "sabil-green-deep": {
+      "hex": "#072A22",
+      "rgb": [
+        7,
+        42,
+        34
+      ],
+      "hsl": [
+        166.3,
+        71.4,
+        9.6
+      ],
+      "cmyk": [
+        83,
+        0,
+        19,
+        84
+      ],
+      "usage": "Splash and immersive backgrounds only. Not a surface colour."
+    },
+    "mineral-green": {
+      "hex": "#1F5A4C",
+      "rgb": [
+        31,
+        90,
+        76
+      ],
+      "hsl": [
+        165.8,
+        48.8,
+        23.7
+      ],
+      "cmyk": [
+        66,
+        0,
+        16,
+        65
+      ],
+      "usage": "Raised surfaces on a green ground; the second step of depth."
+    },
+    "sage": {
+      "hex": "#7FA98C",
+      "rgb": [
+        127,
+        169,
+        140
+      ],
+      "hsl": [
+        138.6,
+        19.6,
+        58.0
+      ],
+      "cmyk": [
+        25,
+        0,
+        17,
+        34
+      ],
+      "usage": "Supporting tint. Dividers and quiet states on green."
+    },
+    "brass": {
+      "hex": "#C6A664",
+      "rgb": [
+        198,
+        166,
+        100
+      ],
+      "hsl": [
+        40.4,
+        46.2,
+        58.4
+      ],
+      "cmyk": [
+        0,
+        16,
+        49,
+        22
+      ],
+      "usage": "The accent, on dark grounds only. 5.44:1 on sabil-green."
+    },
+    "brass-deep": {
+      "hex": "#836427",
+      "rgb": [
+        131,
+        100,
+        39
+      ],
+      "hsl": [
+        39.8,
+        54.1,
+        33.3
+      ],
+      "cmyk": [
+        0,
+        24,
+        70,
+        49
+      ],
+      "usage": "The accent for light grounds. Brass on ivory is 2.06:1 and illegible;\n                                 this is 4.87:1 and clears AA for text as well as for graphics."
+    },
+    "ivory": {
+      "hex": "#F4F1E8",
+      "rgb": [
+        244,
+        241,
+        232
+      ],
+      "hsl": [
+        45.0,
+        35.3,
+        93.3
+      ],
+      "cmyk": [
+        0,
+        1,
+        5,
+        4
+      ],
+      "usage": "The light ground and the mark on dark grounds."
+    },
+    "charcoal": {
+      "hex": "#0C1013",
+      "rgb": [
+        12,
+        16,
+        19
+      ],
+      "hsl": [
+        205.7,
+        22.6,
+        6.1
+      ],
+      "cmyk": [
+        37,
+        16,
+        0,
+        93
+      ],
+      "usage": "One-colour dark. Print, foil blocking, and the monochrome mark."
+    },
+    "stone": {
+      "hex": "#64727C",
+      "rgb": [
+        100,
+        114,
+        124
+      ],
+      "hsl": [
+        205.0,
+        10.7,
+        43.9
+      ],
+      "cmyk": [
+        19,
+        8,
+        0,
+        51
+      ],
+      "usage": "Neutral text and secondary rules."
+    }
+  },
+  "functional": {
+    "success": {
+      "hex": "#3E7A5E",
+      "rgb": [
+        62,
+        122,
+        94
+      ],
+      "hsl": [
+        152.0,
+        32.6,
+        36.1
+      ],
+      "cmyk": [
+        49,
+        0,
+        23,
+        52
+      ],
+      "usage": "Confirmed, settled, attended."
+    },
+    "warning": {
+      "hex": "#AF7A2A",
+      "rgb": [
+        175,
+        122,
+        42
+      ],
+      "hsl": [
+        36.1,
+        61.3,
+        42.5
+      ],
+      "cmyk": [
+        0,
+        30,
+        76,
+        31
+      ],
+      "usage": "Needs attention. Never used for danger."
+    },
+    "danger": {
+      "hex": "#A04B55",
+      "rgb": [
+        160,
+        75,
+        85
+      ],
+      "hsl": [
+        352.9,
+        36.2,
+        46.1
+      ],
+      "cmyk": [
+        0,
+        53,
+        47,
+        37
+      ],
+      "usage": "Restriction, dispute, refusal."
+    },
+    "learning": {
+      "hex": "#6C638E",
+      "rgb": [
+        108,
+        99,
+        142
+      ],
+      "hsl": [
+        252.6,
+        17.8,
+        47.3
+      ],
+      "cmyk": [
+        24,
+        30,
+        0,
+        44
+      ],
+      "usage": "Learning surfaces, and nothing else."
+    },
+    "service": {
+      "hex": "#246F6C",
+      "rgb": [
+        36,
+        111,
+        108
+      ],
+      "hsl": [
+        177.6,
+        51.0,
+        28.8
+      ],
+      "cmyk": [
+        68,
+        0,
+        3,
+        56
+      ],
+      "usage": "Service and safeguard-affirmative."
+    },
+    "neutral": {
+      "hex": "#64727C",
+      "rgb": [
+        100,
+        114,
+        124
+      ],
+      "hsl": [
+        205.0,
+        10.7,
+        43.9
+      ],
+      "cmyk": [
+        19,
+        8,
+        0,
+        51
+      ],
+      "usage": "Everything unweighted."
+    }
+  },
+  "contrast": {
+    "ivory-on-sabil-green": 11.19,
+    "brass-on-sabil-green": 5.44,
+    "brass-on-ivory": 2.06,
+    "brass-deep-on-ivory": 4.87,
+    "sabil-green-on-ivory": 11.19,
+    "ivory-on-charcoal": 16.92
+  },
+  "geometry": {
+    "viewBox": 64,
+    "stroke": 5.0,
+    "strokeSmall": 6.0,
+    "capHeight": 100.0,
+    "wordmarkWeight": 14.0
+  }
+}

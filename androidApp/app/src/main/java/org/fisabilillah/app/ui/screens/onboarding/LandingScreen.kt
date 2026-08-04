@@ -1,6 +1,9 @@
 package org.fisabilillah.app.ui.screens.onboarding
 
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.unit.dp
+import org.fisabilillah.app.ui.brand.BrandLockup
+import org.fisabilillah.app.ui.brand.BrandTone
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -39,15 +42,15 @@ internal fun LandingScreen(
         ScreenColumn(contentPadding = padding) {
             Spacer(Modifier.height(spacing.xl))
 
-            Text(
-                text = "Fi Sabilillah",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .padding(horizontal = spacing.screenHorizontal)
-                    .semantics { heading() },
+            // The mark, not the word set in the body face. One of the three places in
+            // the application where the full lockup appears; see ui/brand/Brand.kt for
+            // why there are only three.
+            BrandLockup(
+                emblemSize = 52.dp,
+                tone = BrandTone.InProduct,
+                modifier = Modifier.padding(horizontal = spacing.screenHorizontal),
             )
-            Spacer(Modifier.height(spacing.xs))
+            Spacer(Modifier.height(spacing.md))
             Text(
                 text = "A community platform for service, learning and mutual aid.",
                 style = MaterialTheme.typography.titleMedium,
