@@ -13,7 +13,7 @@ import { FiSabilillahLogo } from "./FiSabilillahLogo";
 
 /**
  * One gesture, 520ms, then still. The mark fades up and settles from 96% to 100%
- * on the Amanah curve. It does not spin, pulse, sparkle or loop. Under
+ * on the Amanah curve. It does not spin, pulse, sparkle, shimmer or loop. Under
  * `prefers-reduced-motion: reduce` the animation is not shortened, it is removed:
  * somebody who asked the system for no motion asked for no motion.
  */
@@ -41,7 +41,7 @@ export function FiSabilillahSplash() {
     <div className="fs-splash">
       <style>{brandMotionCSS}</style>
       <div className="fs-splash__mark">
-        <FiSabilillahLogo variant="stacked" tone="full" size="xl" />
+        <FiSabilillahLogo variant="stacked" tone="primary" size="xl" />
       </div>
     </div>
   );

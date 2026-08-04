@@ -118,7 +118,7 @@
         83,
         52
       ],
-      "usage": "The accent for light grounds. Gold on ivory is 1.88:1 and\n                                unusable; this is 5.45:1."
+      "usage": "The accent for light grounds. Gold on ivory is 1.88:1 and unusable; this is 5.45:1."
     },
     "ivory": {
       "hex": "#F5F2E9",
@@ -309,6 +309,7 @@
     "#D4AF37",
     "#A8811F"
   ],
+  "goldHighlight": "#F4E6BB",
   "contrast": {
     "ivory-on-deep-green": 10.8,
     "gold-on-deep-green": 5.75,
@@ -319,8 +320,53 @@
     "ivory-on-charcoal": 16.93
   },
   "typography": {
-    "wordmark": "Libre Baskerville, outlines embedded as paths (SIL OFL 1.1)",
+    "display": {
+      "family": "Playfair Display",
+      "file": "PlayfairDisplay-Medium.ttf",
+      "licence": "SIL OFL 1.1",
+      "role": "The wordmark and the tagline. Elegant, timeless, trustworthy.",
+      "tracking": "0.17em on the wordmark, 0.06em on the tagline"
+    },
+    "text": {
+      "family": "Inter",
+      "file": "Inter-SemiBold.ttf",
+      "licence": "SIL OFL 1.1",
+      "role": "The pillars line, labels, and every interface string.",
+      "tracking": "0.24em on the pillars line, 0 in running text"
+    },
+    "arabic": {
+      "family": "Noto Kufi Arabic",
+      "file": "NotoKufiArabic-Bold.ttf",
+      "licence": "SIL OFL 1.1",
+      "role": "The calligraphy inside the emblem. Shaped by HarfBuzz, never by hand.",
+      "tracking": "as shaped"
+    },
     "capHeight": 100.0,
-    "tracking": "0.16em"
+    "scale": {
+      "wordmark": 1.0,
+      "tagline": 0.3,
+      "pillars": 0.17,
+      "label": 0.13
+    },
+    "delivery": "outlines embedded as paths; no asset references a font"
+  },
+  "emblem": {
+    "grid": 64,
+    "ink": [
+      12.259,
+      1.6,
+      51.741,
+      56.88
+    ],
+    "smallInk": [
+      11.4,
+      1.0,
+      52.6,
+      61.6
+    ],
+    "archStroke": 4.0,
+    "smallArchStroke": 5.2,
+    "keylineStroke": 0.85,
+    "simplifyBelowPx": 32
   }
 }

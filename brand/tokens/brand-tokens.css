@@ -5,7 +5,7 @@
   --brand-mineral: #1C574A;  /* Raised surfaces on a green ground. */
   --brand-sage: #6BAA7D;  /* Supporting tint. 4.42:1 on deep green — graphics, not body text. */
   --brand-gold: #D4AF37;  /* The accent, on dark grounds. 5.75:1 on deep green. */
-  --brand-gold-deep: #7A5E15;  /* The accent for light grounds. Gold on ivory is 1.88:1 and */
+  --brand-gold-deep: #7A5E15;  /* The accent for light grounds. Gold on ivory is 1.88:1 and unusable; this is 5.45:1. */
   --brand-ivory: #F5F2E9;  /* The light ground, and the wordmark on dark grounds. */
   --brand-charcoal: #0D1115;  /* One-colour dark, print, foil blocking, monochrome. */
   --brand-stone: #68757A;  /* Neutral text and secondary rules. */
@@ -15,6 +15,9 @@
   --brand-fn-learning: #6C638E;  /* Learning surfaces, and nothing else. */
   --brand-fn-service: #246F6C;  /* Service and safeguard-affirmative. */
   --brand-fn-neutral: #68757A;  /* Everything unweighted. */
+  --brand-gold-highlight: #F4E6BB;
   --brand-gold-ramp: #F0DFA8, #E0C264, #D4AF37, #A8811F;
+  --brand-font-display: "Playfair Display", Georgia, serif;
+  --brand-font-text: "Inter", system-ui, sans-serif;
 }
 

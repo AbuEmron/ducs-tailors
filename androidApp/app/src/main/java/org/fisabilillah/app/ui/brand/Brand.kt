@@ -70,16 +70,15 @@ internal enum class BrandTone {
 }
 
 /**
- * How much wider than tall `brand_wordmark` is — 1267.25 / 102, straight off the generated
- * drawable's viewport.
+ * How much wider than tall `brand_wordmark` is, straight off the generated drawable's
+ * viewport. Playfair Display at 0.17em tracking, so 11.59:1.
  *
  * Every wordmark size below is expressed as a fraction of the emblem and then divided by
- * this, so the two lockups keep the emblem-to-word ratio the brand sheet uses (roughly 6:1
- * beside the mark, 2.9:1 under it) and so nothing overflows a 320dp screen. A wordmark
- * sized by eye is how a lockup ends up correct on the reviewer's phone and clipped on the
- * cheapest one.
+ * this, so the two lockups keep the emblem-to-word ratio the brand sheet uses and nothing
+ * overflows a 320dp screen. A wordmark sized by eye is how a lockup ends up correct on the
+ * reviewer's phone and clipped on the cheapest one.
  */
-private const val WORDMARK_ASPECT = 12.42f
+private const val WORDMARK_ASPECT = 11.59f
 
 @Composable
 private fun archColour(tone: BrandTone, mono: Color): Color = when (tone) {
@@ -258,6 +257,14 @@ internal object BrandPalette {
     val ForestDeep = Color(0xFF0A2A24)
 
     val Mineral = Color(0xFF1C574A)
+
+    /**
+     * The tagline's colour, on dark grounds only.
+     *
+     * 4.42:1 on Deep Green, which clears AA for large text and does not clear it for body
+     * text. That is exactly what it is for — "For the Sake of Allah" is set at display size
+     * in every lockup, and nothing else in this palette is allowed to use it for a sentence.
+     */
     val Sage = Color(0xFF6BAA7D)
 
     /**

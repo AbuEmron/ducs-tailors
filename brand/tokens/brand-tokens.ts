@@ -21,5 +21,36 @@ export const functionalTokens = {
 } as const;
 
 export const goldRamp = ["#F0DFA8", "#E0C264", "#D4AF37", "#A8811F"] as const;
+export const goldHighlight = "#F4E6BB" as const;
+
+export const typography = {
+  "display": {
+    "family": "Playfair Display",
+    "file": "PlayfairDisplay-Medium.ttf",
+    "licence": "SIL OFL 1.1",
+    "role": "The wordmark and the tagline. Elegant, timeless, trustworthy.",
+    "tracking": "0.17em on the wordmark, 0.06em on the tagline"
+  },
+  "text": {
+    "family": "Inter",
+    "file": "Inter-SemiBold.ttf",
+    "licence": "SIL OFL 1.1",
+    "role": "The pillars line, labels, and every interface string.",
+    "tracking": "0.24em on the pillars line, 0 in running text"
+  },
+  "arabic": {
+    "family": "Noto Kufi Arabic",
+    "file": "NotoKufiArabic-Bold.ttf",
+    "licence": "SIL OFL 1.1",
+    "role": "The calligraphy inside the emblem. Shaped by HarfBuzz, never by hand.",
+    "tracking": "as shaped"
+  }
+} as const;
+export const typeScale = {
+  "wordmark": 1.0,
+  "tagline": 0.3,
+  "pillars": 0.17,
+  "label": 0.13
+} as const;
 
 export type BrandToken = keyof typeof brandTokens;

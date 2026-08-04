@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
-"""Assembles the brand presentation board from the generated assets."""
+"""
+Assembles the brand presentation board from the generated assets.
+
+Every mark on the page is the real exported file, inlined. Nothing here draws
+anything; if the board looks wrong, the asset is wrong.
+"""
 import json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tokens as T
-from letters import word_path_data, CAP
+from build import PILLAR_ICONS, pillar_svg
+from letters import CAP, DISPLAY, word_path_data
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 B = os.path.join(ROOT, "brand")
@@ -16,7 +22,7 @@ def inner(path):
     The guts of an SVG, so it can be dropped inline at any size.
 
     The gradient id is rewritten per inclusion. Every emblem export defines
-    `fsGold`, and a page holding fifteen of them would hold fifteen elements with
+    `fsGold`, and a page holding twenty of them would hold twenty elements with
     the same id -- which is invalid, and which resolves every reference to
     whichever one the parser saw first.
     """
@@ -24,43 +30,131 @@ def inner(path):
     s = s[s.index(">", s.index("<svg")) + 1: s.rindex("</svg>")]
     s = re.sub(r"<title>.*?</title>", "", s, flags=re.S)
     _uid[0] += 1
-    return s.replace("fsGold", f"g{_uid[0]}")
+    return s.replace("fsGold", f"g{_uid[0]}").replace("fsWord", f"w{_uid[0]}")
 
 
-def svg(path, box="0 0 64 64", cls="", extra=""):
-    return (f'<svg viewBox="{box}" class="{cls}" {extra} aria-hidden="true">'
-            f'{inner(path)}</svg>')
+def svg(path, box="0 0 64 64", cls="", extra="", plateless=False):
+    """
+    `plateless` drops the lockup's own background rect.
+
+    The board's ground is already the brand's dark; a lockup that carries its
+    plate on top of it reads as a card floating on the page rather than as the
+    identity the page is about.
+    """
+    body = inner(path)
+    if plateless:
+        body = re.sub(r'<rect width="\d+" height="\d+" fill="#[0-9A-Fa-f]{6}"/>', "",
+                      body, count=1)
+    return (f'<svg viewBox="{box}" class="{cls}" {extra} aria-hidden="true">{body}</svg>')
 
 
 def viewbox_of(path):
-    s = open(os.path.join(B, path)).read()
-    return re.search(r'viewBox="([^"]+)"', s).group(1)
+    return re.search(r'viewBox="([^"]+)"', open(os.path.join(B, path)).read()).group(1)
+
+
+def raw(markup, box="0 0 64 64", cls=""):
+    _uid[0] += 1
+    body = markup[markup.index(">", markup.index("<svg")) + 1: markup.rindex("</svg>")]
+    return (f'<svg viewBox="{box}" class="{cls}" aria-hidden="true">'
+            f'{body.replace("fsGold", f"p{_uid[0]}")}</svg>')
 
 
 D = json.load(open(os.path.join(B, "tokens/brand-tokens.json")))
 OUT = os.environ.get("BOARD_OUT", "/tmp/board.html")
 
 # ── swatches ─────────────────────────────────────────────────────────────────
-sw = []
-for k, v in D["brand"].items():
-    on = "#0F3D34" if v["hsl"][2] > 55 else "#F5F2E9"
-    sw.append(f'''<figure class="sw">
-      <div class="sw__chip" style="background:{v['hex']};color:{on}">{v['hex']}</div>
-      <figcaption><b>{k}</b><span>{' '.join(v['usage'].split())}</span>
-      <code>rgb({', '.join(str(c) for c in v['rgb'])})</code>
-      <code>{v['hsl'][0]}&deg; {v['hsl'][1]}% {v['hsl'][2]}%</code>
-      <code>cmyk {' '.join(str(c) for c in v['cmyk'])}</code></figcaption></figure>''')
+sw = "".join(f'''<figure class="sw">
+  <div class="sw__chip" style="background:{v['hex']};color:{"#0F3D34" if v['hsl'][2] > 55 else "#F5F2E9"}">{v['hex']}</div>
+  <figcaption><b>{k}</b><span>{v['usage']}</span>
+  <code>rgb({', '.join(str(c) for c in v['rgb'])})</code>
+  <code>{v['hsl'][0]}&deg; {v['hsl'][1]}% {v['hsl'][2]}%</code>
+  <code>cmyk {' '.join(str(c) for c in v['cmyk'])}</code></figcaption></figure>'''
+               for k, v in D["brand"].items())
 
-ramp = "".join(
-    f'<div class="ramp__stop" style="background:{c}"><span>{c}</span>'
-    f'<em>{o}%</em></div>'
-    for c, o in zip(D["goldRamp"], (0, 30, 66, 100)))
+ramp = "".join(f'<div class="ramp__stop" style="background:{c}"><span>{c}</span><em>{o}%</em></div>'
+               for c, o in zip(D["goldRamp"], (0, 28, 64, 100)))
 
 con = "".join(
     f'<tr><td>{k.replace("-", " ")}</td><td class="num">{v}:1</td>'
     f'<td class="{"ok" if v >= 4.5 else ("mid" if v >= 3 else "bad")}">'
     f'{"AA text" if v >= 4.5 else ("AA large only" if v >= 3 else "fails — never")}</td></tr>'
     for k, v in D["contrast"].items())
+
+# ── the reference's own "meaning behind the design" ──────────────────────────
+MEANING = [
+    ("crescent", "Crescent &amp; star", "Faith, guidance &amp; divine purpose"),
+    ("calligraphy", "Arabic calligraphy", "Unity, deen &amp; timeless Islamic identity"),
+    ("leaves", "Hands &amp; leaves", "Service, help &amp; positive impact"),
+    ("arch", "Arch &amp; shape", "Masjid, shelter, community &amp; sacred space"),
+]
+
+import geometry as G                                             # noqa: E402
+from build import CALLIGRAPHY, gold_defs                         # noqa: E402
+
+MEANING_ART = {
+    "crescent": f'<path d="{G.CRESCENT}" fill="GOLD"/><path d="{G.STAR}" fill="GOLD"/>',
+    "calligraphy": f'<path d="{CALLIGRAPHY}" fill="GOLD"/>',
+    "leaves": f'<path d="{G.LEAF_L}" fill="GOLD"/><path d="{G.LEAF_R}" fill="GOLD"/>',
+    "arch": (f'<path d="{G.ARCH}" fill="none" stroke="GOLD" '
+             f'stroke-width="{G.ARCH_STROKE}" stroke-linejoin="round"/>'),
+}
+
+
+def meaning_svg(key):
+    _uid[0] += 1
+    gid = f"m{_uid[0]}"
+    return (f'<svg viewBox="8 0 48 60" aria-hidden="true">'
+            f'<defs>{gold_defs(gid)}</defs>'
+            f'{MEANING_ART[key].replace("GOLD", f"url(#{gid})")}</svg>')
+
+
+meaning = "".join(
+    f'<figure class="mean"><div class="mean__art">{meaning_svg(k)}</div>'
+    f'<figcaption><b>{t}</b><span>{d}</span></figcaption></figure>'
+    for k, t, d in MEANING)
+
+# ── app icon row, exactly the reference's five ───────────────────────────────
+ICON_ROW = [("primary", "Deep green", "The default"),
+            ("dark", "Charcoal", "Photography, dark shelves"),
+            ("light", "Ivory", "Drawn in gold-deep"),
+            ("ivory", "Mineral", "Ivory mark on green"),
+            ("mono-white", "Outline", "One colour, no field")]
+icons = "".join(
+    f'<figure class="tone{" tone--dark" if p == "mono-white" else ""}">'
+    f'<div class="tone__art">{svg(f"logo/fi-sabilillah-icon-{p}.svg")}</div>'
+    f'<figcaption><b>{t}</b><span>{d}</span></figcaption></figure>'
+    for p, t, d in ICON_ROW)
+
+TONES = [("primary", "Primary", "Gradient gold on deep green"),
+         ("flat", "Flat", "Silkscreen, embroidery, one plate"),
+         ("dark", "Dark", "Charcoal and photography"),
+         ("light", "Light", "Ivory and white; gold-deep"),
+         ("ivory", "Ivory", "Where gold would compete with gold"),
+         ("amanah", "In-product", "On Amanah surfaces, inside the app"),
+         ("mono-black", "Mono, black", "Print, engraving, stamps"),
+         ("mono-white", "Mono, white", "Reversed out of any dark ground")]
+tones = "".join(
+    f'<figure class="tone{" tone--plate" if p == "mono-black" else ""}'
+    f'{" tone--dark" if p == "mono-white" else ""}">'
+    f'<div class="tone__art">{svg(f"logo/fi-sabilillah-icon-{p}.svg")}</div>'
+    f'<figcaption><b>{t}</b><span>{d}</span></figcaption></figure>' for p, t, d in TONES)
+
+sizes = "".join(
+    f'<figure class="size"><div class="size__art" style="--s:{p}px">'
+    f'{svg("logo/fi-sabilillah-icon-small.svg" if p <= 32 else "logo/fi-sabilillah-icon-primary.svg")}'
+    f'</div><figcaption>{p}px</figcaption></figure>'
+    for p in (16, 24, 32, 48, 64, 96, 160))
+
+MASKS = [("circle", "Circle", "Pixel, most launchers"),
+         ("squircle", "Squircle", "Samsung One UI"),
+         ("rounded", "Rounded square", "iOS, and Android's default"),
+         ("teardrop", "Teardrop", "Some OEM skins")]
+masks = "".join(
+    f'<figure class="mask"><div class="mask__art mask--{m}">'
+    f'<div class="mask__bg"></div><div class="mask__fg">'
+    f'{svg("logo/fi-sabilillah-icon-mono-white.svg")}</div>'
+    f'<div class="mask__safe"></div></div>'
+    f'<figcaption><b>{t}</b><span>{d}</span></figcaption></figure>' for m, t, d in MASKS)
 
 BADGES = [("verified-organization", "Verified organisation", "Registration documents were seen by a named reviewer."),
           ("learning", "Learning", "A learning offering. Not an endorsement of its content."),
@@ -74,35 +168,13 @@ badges = "".join(
     f'<figcaption><b>{t}</b><span>{d}</span></figcaption></figure>'
     for n, t, d in BADGES)
 
-sizes = "".join(
-    f'<figure class="size"><div class="size__art" style="--s:{p}px">'
-    f'{svg("logo/fi-sabilillah-icon-small.svg" if p <= 32 else "logo/fi-sabilillah-icon-primary.svg")}'
-    f'</div><figcaption>{p}px</figcaption></figure>'
-    for p in (16, 24, 32, 48, 64, 96, 160))
-
-TONES = [("logo/fi-sabilillah-icon-primary.svg", "Primary", "Default. Gradient gold on deep green"),
-         ("logo/fi-sabilillah-icon-flat.svg", "Flat", "Silkscreen, embroidery, one plate"),
-         ("logo/fi-sabilillah-icon-light.svg", "Light", "Ivory and white; drawn in gold-deep"),
-         ("logo/fi-sabilillah-icon-dark.svg", "Dark", "Charcoal and photography"),
-         ("logo/fi-sabilillah-icon-ivory.svg", "Ivory", "Where gold would compete with gold"),
-         ("logo/fi-sabilillah-icon-amanah.svg", "In-product", "On Amanah surfaces, inside the app"),
-         ("logo/fi-sabilillah-icon-mono-black.svg", "Mono, black", "Print, engraving, stamps"),
-         ("logo/fi-sabilillah-icon-mono-white.svg", "Mono, white", "Reversed out of any dark ground")]
-tones = "".join(
-    f'<figure class="tone{" tone--plate" if p.endswith("mono-black.svg") else ""}'
-    f'{" tone--dark" if p.endswith("mono-white.svg") else ""}">'
-    f'<div class="tone__art">{svg(p)}</div>'
-    f'<figcaption><b>{t}</b><span>{d}</span></figcaption></figure>' for p, t, d in TONES)
-
-MASKS = [("circle", "Circle", "Pixel, most launchers"),
-         ("squircle", "Squircle", "Samsung One UI"),
-         ("rounded", "Rounded square", "iOS, and Android's default"),
-         ("teardrop", "Teardrop", "Some OEM skins")]
-masks = "".join(
-    f'<figure class="mask"><div class="mask__art mask--{m}">'
-    f'<div class="mask__bg"></div><div class="mask__fg">'
-    f'{svg("logo/fi-sabilillah-icon-mono-white.svg")}</div></div>'
-    f'<figcaption><b>{t}</b><span>{d}</span></figcaption></figure>' for m, t, d in MASKS)
+PILLAR_TITLES = {"community": "Community", "knowledge": "Knowledge", "service": "Service",
+                 "giving": "Giving", "safety": "Safety"}
+pillars = "".join(
+    f'<figure class="pillar"><div class="pillar__art">'
+    f'{raw(pillar_svg(n))}</div>'
+    f'<figcaption><b>{PILLAR_TITLES[n]}</b><span>{PILLAR_ICONS[n][0]}</span>'
+    f'</figcaption></figure>' for n in PILLAR_ICONS)
 
 WRONG = [("stretch", "Stretched", "The proportions are the mark."),
          ("rotate", "Rotated", "An arch that is not upright is not an arch."),
@@ -115,49 +187,49 @@ wrong = "".join(
     f'{svg("logo/fi-sabilillah-icon-primary.svg")}</div>'
     f'<figcaption><b>{t}</b><span>{d}</span></figcaption></figure>' for c, t, d in WRONG)
 
-# The seven unique capitals in FI SABILILLAH.
 GLYPHS = "FISABLH"
 
 
 def _glyph_svg(ch):
-    """One capital, on its own, for the type specimen."""
-    d, w = word_path_data(ch, x=0, y=0, scale=1.0)
+    d, w = word_path_data(ch, x=0, y=0, scale=1.0, font=DISPLAY)
     return (f'<svg viewBox="-6 -6 {w + 12:.1f} {CAP + 12:.1f}" aria-hidden="true">'
             f'<path d="{d}"/></svg>')
 
 
 wm_vb = viewbox_of("logo/fi-sabilillah-wordmark.svg")
 hz = "logo/fi-sabilillah-logo-horizontal-tagline.svg"
+st = "logo/fi-sabilillah-logo-stacked-full.svg"
+ty = D["typography"]
 
 HTML = f"""<title>Fi Sabilillah — Visual Identity</title>
 <style>
 :root {{
-  --ground:#0A2A24; --surface:#0F3D34; --raised:#14483D;
-  --ink:#F1EEE4; --muted:#96AFA4; --rule:rgba(212,175,55,.24);
-  --gold:#D4AF37; --green:#0F3D34; --ivory:#F5F2E9;
+  --ground:#070E12; --surface:#0C1720; --raised:#102028;
+  --ink:#F1EEE4; --muted:#93A3A6; --rule:rgba(212,175,55,.22);
+  --gold:#D4AF37; --sage:#6BAA7D; --green:#0F3D34; --ivory:#F5F2E9;
   --display: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
-  --halo: rgba(28,87,74,.55);
+  --halo: rgba(28,87,74,.5);
   --pad: clamp(20px, 5vw, 72px);
 }}
 @media (prefers-color-scheme: light) {{
   :root {{ --ground:#F3F1E8; --surface:#FFFFFF; --raised:#FBFAF5;
-           --ink:#0C2A23; --muted:#5C6E67; --rule:rgba(15,61,52,.18); --gold:#7A5E15;
-           --halo: rgba(212,175,55,.16); }}
+           --ink:#0C2A23; --muted:#5C6E67; --rule:rgba(15,61,52,.18);
+           --gold:#7A5E15; --sage:#3E7A5E; --halo:rgba(212,175,55,.14); }}
 }}
-:root[data-theme="dark"] {{ --ground:#0A2A24; --surface:#0F3D34; --raised:#14483D;
-  --ink:#F1EEE4; --muted:#96AFA4; --rule:rgba(212,175,55,.24); --gold:#D4AF37; --halo:rgba(28,87,74,.55); }}
+:root[data-theme="dark"] {{ --ground:#070E12; --surface:#0C1720; --raised:#102028;
+  --ink:#F1EEE4; --muted:#93A3A6; --rule:rgba(212,175,55,.22); --gold:#D4AF37;
+  --sage:#6BAA7D; --halo:rgba(28,87,74,.5); }}
 :root[data-theme="light"] {{ --ground:#F3F1E8; --surface:#FFFFFF; --raised:#FBFAF5;
   --ink:#0C2A23; --muted:#5C6E67; --rule:rgba(15,61,52,.18); --gold:#7A5E15;
-  --halo:rgba(212,175,55,.16); }}
+  --sage:#3E7A5E; --halo:rgba(212,175,55,.14); }}
 
 * {{ box-sizing:border-box; }}
 body {{ margin:0; background:var(--ground); color:var(--ink); font-family:var(--body);
   font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased; }}
 .wrap {{ max-width:1180px; margin:0 auto; padding:0 var(--pad); }}
 section {{ padding:clamp(48px,7vw,104px) 0; border-top:1px solid var(--rule); }}
-section:first-of-type {{ border-top:0; }}
 .eyebrow {{ font:600 11px/1 var(--body); letter-spacing:.22em; text-transform:uppercase;
   color:var(--gold); margin:0 0 18px; }}
 h2 {{ font-family:var(--display); font-weight:400; font-size:clamp(26px,3.4vw,40px);
@@ -167,69 +239,63 @@ p {{ max-width:64ch; color:var(--muted); margin:0 0 14px; }}
 p strong, li strong {{ color:var(--ink); font-weight:600; }}
 a {{ color:var(--gold); }}
 code {{ font-family:var(--mono); font-size:12px; }}
+[dir=rtl] {{ font-size:1.3em; }}
 
-/* hero */
-.hero {{ min-height:88vh; display:grid; place-items:center; text-align:center;
+/* hero — the reference's own banner, at page scale */
+.hero {{ min-height:92vh; display:grid; place-items:center; text-align:center;
   padding:clamp(56px,10vh,120px) var(--pad);
-  background:radial-gradient(58% 44% at 50% 36%, var(--halo), transparent 72%); }}
-.hero__mark {{ width:clamp(150px,24vw,250px); height:auto; display:block; margin:0 auto 34px; }}
-.hero__word {{ width:min(84vw,520px); height:auto; display:block; margin:0 auto 24px; }}
-.hero__word path {{ fill:var(--ink); }}
-.hero__rule {{ width:64px; height:1px; background:var(--gold); margin:0 auto 22px; }}
-.hero__tag {{ font-family:var(--display); font-size:clamp(15px,2vw,19px); letter-spacing:.02em;
-  color:var(--gold); margin:0 0 10px; }}
-.hero__pillars {{ font:600 11px/1 var(--body); letter-spacing:.3em; text-transform:uppercase;
-  color:var(--gold); opacity:.8; margin:0 0 26px; }}
+  background:radial-gradient(56% 42% at 50% 40%, var(--halo), transparent 72%); }}
+.hero__lockup {{ width:min(88vw,620px); height:auto; display:block; margin:0 auto 34px; }}
 .hero__thesis {{ font-family:var(--display); font-size:clamp(17px,2vw,21px); line-height:1.5;
-  color:var(--ink); max-width:52ch; margin:0 auto; }}
+  color:var(--ink); max-width:54ch; margin:0 auto; }}
 
 /* the identity's own motion, shown by using it */
-.hero__mark [stroke] {{ stroke-dasharray:220; stroke-dashoffset:220;
+.hero__lockup [stroke]:not([fill]) {{ stroke-dasharray:230; stroke-dashoffset:230;
   animation:draw 1100ms cubic-bezier(.2,.8,.2,1) forwards; }}
-.hero__mark [stroke]:nth-of-type(2) {{ animation-delay:160ms; }}
-.hero__mark path[fill]:not([stroke]):not(:first-child) {{
-  opacity:0; animation:lit 520ms cubic-bezier(.2,.8,.2,1) 720ms forwards; }}
 @keyframes draw {{ to {{ stroke-dashoffset:0; }} }}
-@keyframes lit {{ from {{ opacity:0; transform:translateY(3px); }} to {{ opacity:1; transform:none; }} }}
 @media (prefers-reduced-motion: reduce) {{
-  .hero__mark [stroke] {{ animation:none; stroke-dashoffset:0; }}
-  .hero__mark path[fill]:not([stroke]):not(:first-child) {{ animation:none; opacity:1; }}
+  .hero__lockup [stroke]:not([fill]) {{ animation:none; stroke-dashoffset:0; }}
 }}
 
 .grid {{ display:grid; gap:clamp(16px,2vw,26px); }}
 .g2 {{ grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); }}
-.g3 {{ grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); }}
+.g3 {{ grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); }}
 .g4 {{ grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); }}
+.g5 {{ grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }}
 
 figure {{ margin:0; }}
 figcaption {{ margin-top:12px; font-size:13px; color:var(--muted); }}
 figcaption b {{ display:block; color:var(--ink); font-size:14px; font-weight:600; margin-bottom:2px; }}
 figcaption span {{ display:block; }}
 
-.tone__art, .badge__art, .mask__art, .wrong__art {{ background:var(--raised);
-  border:1px solid var(--rule); border-radius:16px; padding:20px; display:grid;
-  place-items:center; }}
+.tone__art, .badge__art, .mask__art, .wrong__art, .pillar__art, .mean__art {{
+  background:var(--raised); border:1px solid var(--rule); border-radius:16px;
+  padding:20px; display:grid; place-items:center; }}
 .tone__art svg, .badge__art svg, .wrong__art svg {{ width:100%; max-width:104px; height:auto; }}
+.pillar__art svg {{ width:100%; max-width:64px; height:auto; }}
+.mean__art {{ padding:14px; }} .mean__art svg {{ width:100%; max-width:56px; height:auto; }}
+.mean {{ display:grid; grid-template-columns:76px 1fr; gap:16px; align-items:center; }}
 .tone--plate .tone__art {{ background:var(--ivory); }}
 .tone--dark .tone__art {{ background:#0D1115; }}
 
-.ramp-sizes {{ display:flex; flex-wrap:wrap; align-items:flex-end;
-  gap:clamp(14px,3vw,40px); }}
+.ramp-sizes {{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:clamp(14px,3vw,40px); }}
 .size__art {{ height:172px; display:grid; place-items:center; }}
 .size__art svg {{ width:var(--s); height:var(--s); }}
 .size figcaption {{ text-align:center; font-family:var(--mono); font-size:12px; }}
 
-/* adaptive-icon masks */
+/* adaptive-icon masks, with the 66dp safe circle drawn on */
 .mask__art {{ position:relative; aspect-ratio:1; padding:0; overflow:hidden; }}
 .mask__bg {{ position:absolute; inset:0; background:var(--green); }}
 .mask__fg {{ position:absolute; inset:0; display:grid; place-items:center; }}
-.mask__fg svg {{ width:62%; height:62%; }}
+.mask__fg svg {{ width:50%; height:50%; }}
+.mask__safe {{ position:absolute; left:50%; top:50%; width:61.1%; height:61.1%;
+  transform:translate(-50%,-50%); border:1px dashed rgba(255,90,120,.85);
+  border-radius:50%; pointer-events:none; }}
 .mask--circle .mask__bg, .mask--circle .mask__fg {{ clip-path:circle(50%); }}
 .mask--squircle .mask__bg, .mask--squircle .mask__fg {{ border-radius:38%; }}
 .mask--rounded .mask__bg, .mask--rounded .mask__fg {{ border-radius:22%; }}
 .mask--teardrop .mask__bg, .mask--teardrop .mask__fg {{ border-radius:50% 50% 50% 12%; }}
 
-/* swatches */
 .sw__chip {{ height:104px; border-radius:14px; display:grid; place-items:end start;
   padding:12px; font-family:var(--mono); font-size:12px; border:1px solid var(--rule); }}
 .sw figcaption code {{ display:block; color:var(--muted); }}
@@ -247,29 +313,22 @@ th {{ font:600 11px/1 var(--body); letter-spacing:.16em; text-transform:uppercas
 .ok {{ color:#6BAA7D; }} .mid {{ color:var(--gold); }} .bad {{ color:#D08A92; font-weight:600; }}
 .scroll {{ overflow-x:auto; }}
 
-/* glyph specimen */
 .glyphs {{ display:flex; flex-wrap:wrap; gap:14px; }}
 .glyph {{ background:var(--raised); border:1px solid var(--rule); border-radius:12px;
   width:92px; height:104px; display:grid; place-items:center; }}
-.glyph svg {{ width:auto; height:52px; }}
-.glyph svg path {{ fill:var(--ink); }}
+.glyph svg {{ width:auto; height:54px; }} .glyph svg path {{ fill:var(--ink); }}
 
 .lockup {{ background:var(--raised); border:1px solid var(--rule); border-radius:18px;
-  padding:clamp(20px,3vw,38px); display:grid; place-items:center; }}
-.lockup svg {{ width:100%; height:auto; max-width:520px; }}
+  padding:clamp(18px,2.4vw,32px); display:grid; place-items:center; }}
+.lockup svg {{ width:100%; height:auto; }}
+.lockup--wide svg {{ max-width:620px; }} .lockup--tall svg {{ max-width:320px; }}
 
 .splashes {{ display:grid; grid-template-columns:1fr 1fr; gap:clamp(12px,2vw,20px);
   align-content:start; }}
 .splash {{ border:1px solid var(--rule); border-radius:20px; overflow:hidden;
-  aspect-ratio:9/16; display:grid; place-items:center; }}
-.splash--dark {{ background:#0A2A24; }} .splash--light {{ background:#F5F2E9; }}
-.splash__inner {{ display:grid; place-items:center; gap:18px; padding:24px; width:100%; }}
-.splash__inner svg.m {{ width:104px; height:104px; }}
-.splash__inner svg.w {{ width:76%; height:auto; }}
-.splash--dark svg.w path {{ fill:#F5F2E9; }}
-.splash--light svg.w path {{ fill:#0F3D34; }}
+  aspect-ratio:9/16; }}
+.splash img, .splash svg {{ width:100%; height:100%; object-fit:cover; }}
 
-/* incorrect use */
 .wrong__art {{ position:relative; }}
 .wrong__art::after {{ content:""; position:absolute; inset:0; border-radius:16px;
   border:1px solid #D08A92; }}
@@ -288,6 +347,8 @@ th {{ font:600 11px/1 var(--body); letter-spacing:.16em; text-transform:uppercas
 .note {{ background:var(--raised); border:1px solid var(--rule); border-left:2px solid var(--gold);
   border-radius:0 14px 14px 0; padding:18px 22px; }}
 .note p:last-child {{ margin-bottom:0; }}
+.arabic {{ font-size:clamp(30px,5vw,52px); color:var(--gold); line-height:1.5; margin:0 0 10px;
+  font-family:"Noto Kufi Arabic","Segoe UI",system-ui,sans-serif; }}
 ul {{ color:var(--muted); max-width:64ch; padding-left:1.1em; }}
 li {{ margin-bottom:7px; }}
 footer {{ padding:56px 0 80px; color:var(--muted); font-size:13px; border-top:1px solid var(--rule); }}
@@ -295,124 +356,142 @@ footer {{ padding:56px 0 80px; color:var(--muted); font-size:13px; border-top:1p
 
 <header class="hero">
   <div>
-    {svg("logo/fi-sabilillah-icon-primary.svg", cls="hero__mark")}
-    {svg("logo/fi-sabilillah-wordmark-mono.svg", box=wm_vb, cls="hero__word")}
-    <div class="hero__rule"></div>
-    <p class="hero__tag">For the Sake of Allah</p>
-    <p class="hero__pillars">Serve &middot; Learn &middot; Grow &middot; Give</p>
-    <p class="hero__thesis">A gold arch on deep green, holding a crescent and star above a
-      colonnade, rooted in two leaves. <em>Fi sabilillah</em> means <em>in the path of
-      Allah</em>, and the path is the mark.</p>
+    {svg(st, box=viewbox_of(st), cls="hero__lockup", plateless=True)}
+    <p class="hero__thesis">A gold arch on deep green, holding a crescent and star above
+      <span dir="rtl">في سبيل الله</span>, cradled by two leaves. <em>Fi sabilillah</em> means
+      <em>in the path of Allah</em>, and the path is the mark.</p>
   </div>
 </header>
 
 <div class="wrap">
 
+<section style="border-top:0">
+  <p class="eyebrow">Meaning behind the design</p>
+  <h2>Five readings, one silhouette</h2>
+  <p>These are the reference's own, from its meaning panel. They are kept because they were
+  the brief — not reinterpreted, not improved on.</p>
+  <div class="grid g2">{meaning}</div>
+</section>
+
 <section>
-  <p class="eyebrow">The idea</p>
-  <h2>One silhouette, carrying five things</h2>
+  <p class="eyebrow">The Arabic</p>
+  <h2>Really Arabic, really shaped</h2>
   <div class="grid g2">
     <div>
-      <p>The <strong>ogee arch</strong> is shelter, and the threshold you cross to enter it —
-      the silhouette the whole identity is recognised by. The <strong>inner keyline</strong>
-      makes it a doorway rather than an outline. The <strong>crescent and star</strong> name
-      the community the platform is for, plainly rather than by hint. The
-      <strong>three-arch arcade</strong> is a colonnade: a way that continues past where you
-      stand, three because a colonnade is a repetition and two does not repeat. The
-      <strong>leaf sweeps</strong> are growth from what is sheltered, and they give the mark a
-      base so it sits rather than floats.</p>
-      <p>Every path is computed, not traced: the crescent is the intersection of two circles
-      solved exactly, the arcade is an arc sweep, the arch and leaves are cubics. That is what
-      lets the same geometry produce an SVG, a VectorDrawable and a React component that are
-      the same shape rather than three drawings of it.</p>
+      <p class="arabic" dir="rtl" lang="ar">في سبيل الله</p>
+      <p><em>fī sabīlillāh</em>. Real Unicode Arabic, in a real Arabic typeface — <strong>Noto
+      Kufi Arabic</strong> — shaped by <strong>HarfBuzz</strong>. The shaper chooses the
+      contextual forms and substitutes the&nbsp;ﷲ&nbsp;ligature; nothing in this system picks a
+      glyph by hand, and nothing draws a shape that is <em>meant to look like</em> Arabic.</p>
+      <p>Set on two lines because on one it is a 6:1 run, and inside a field of the arch's
+      proportions that means a scale where the strokes are a hairline. Two lines is an ordinary
+      way to set the phrase compactly and keeps every letter in its correct form.</p>
     </div>
     <div class="note">
-      <h3>The one departure from the reference</h3>
-      <p>The reference carries a block of ornamental script where the arcade now sits. It is
-      not readable Arabic, and it is not reproduced here.</p>
-      <p>That is the brief's own rule, stated twice: <em>free from fake or malformed Arabic
-      calligraphy</em>. Script that approximates Arabic without resolving into words is the
-      one thing a Muslim audience notices first and forgives last, and it would undo the
-      identity's whole claim to be careful.</p>
-      <p>Everything else the reference established is kept — the crescent, the star, the arch,
-      gold on deep green, the serif wordmark, the rule-and-diamond divider, and
-      &ldquo;For the Sake of Allah&rdquo;.</p>
+      <h3>Checked, not promised</h3>
+      <p>Every build asserts three things about the calligraphy: that the shaper produced
+      contextual forms rather than isolated letters, that <span dir="rtl">الله</span> resolved
+      to the&nbsp;ﷲ&nbsp;ligature, and that the path in the exported icon is byte-identical to
+      what re-shaping produces now.</p>
+      <p>Below 32px there is <strong>no calligraphy at all</strong>. At 24px its strokes are a
+      fifth of a pixel. Illegible Arabic is exactly the failure this identity is most careful
+      about, so the small cut drops it and gives the field to the crescent.</p>
+      <p>What is <em>not</em> claimed: that it has been read by a native reader. It is
+      technically correct; well-set is a different claim and only a person can make it.</p>
     </div>
+  </div>
+</section>
+
+<section>
+  <p class="eyebrow">App icon</p>
+  <h2>Five plates, one mark</h2>
+  <div class="grid g5">{icons}</div>
+</section>
+
+<section>
+  <p class="eyebrow">Logo variations</p>
+  <h2>Eight tones, one geometry</h2>
+  <div class="grid g3">{tones}</div>
+  <div class="grid g2" style="margin-top:34px">
+    <div class="lockup lockup--wide">{svg(hz, box=viewbox_of(hz))}</div>
+    <div class="lockup lockup--tall">{svg(st, box=viewbox_of(st))}</div>
   </div>
 </section>
 
 <section>
   <p class="eyebrow">Scale</p>
   <h2>It has to work at sixteen pixels</h2>
-  <p>Below 32px the keyline, the star and the leaf sweeps are under a pixel wide, so the mark
-  switches to a small cut: a heavier arch stroke, the crescent, and a two-arch arcade. Detail
-  you cannot resolve does not read as detail — it reads as a smudge over the parts that were
-  legible. That decision is made by the code from the size it is handed, not by the person
-  placing it.</p>
+  <p>Below 32px the mark drops the keyline, the calligraphy and the curled leaf tips, thickens
+  the band, and enlarges the crescent to fill the field the calligraphy has left. Detail you
+  cannot resolve does not read as detail — it reads as dirt over the parts that were legible.
+  That decision is made by the code from the size it is handed, not by the person placing it.</p>
   <div class="ramp-sizes">{sizes}</div>
 </section>
 
 <section>
-  <p class="eyebrow">Variants</p>
-  <h2>Eight tones, one geometry</h2>
-  <div class="grid g3">{tones}</div>
-  <div class="grid g2" style="margin-top:34px">
-    <div class="lockup">{svg(hz, box=viewbox_of(hz))}</div>
-    <div class="lockup">{svg("logo/fi-sabilillah-logo-stacked.svg", box=viewbox_of("logo/fi-sabilillah-logo-stacked.svg"))}</div>
-  </div>
-</section>
-
-<section>
-  <p class="eyebrow">App icon</p>
-  <h2>Every mask the platform will cut</h2>
-  <p>The adaptive foreground carries <strong>no baked corner radius</strong> — the launcher
-  applies the mask, and a pre-rounded foreground gets rounded twice. Shown here in the
-  monochrome cut, which is what a themed icon actually renders: the launcher composites the
-  whole foreground in one tint, so the gradient lives in the SVG and PNG exports and every
-  VectorDrawable is drawn flat.</p>
+  <p class="eyebrow">Adaptive icon</p>
+  <h2>Inside the circle, on every mask</h2>
+  <p>Android guarantees only the central <strong>66dp circle</strong> — dashed above.
+  Everything outside it is the launcher's to crop, and every OEM crops it differently. The
+  mark is a tall arch with leaves at the foot, so its furthest-from-centre points are the leaf
+  tips; at the 62% scale that looks right in a preview they sit 40.6dp out, comfortably inside
+  a square mask and clipped by a circular one. The foreground occupies 50% instead.</p>
+  <p>The check samples 800 points along every path, projects them into the viewport and fails
+  if any lands outside the circle. It samples the curves rather than the bounding box, because
+  the mark's bbox corners are empty and a corner check would reject an icon that is
+  comfortably inside.</p>
   <div class="grid g4">{masks}</div>
 </section>
 
 <section>
   <p class="eyebrow">Colour</p>
-  <h2>Two palettes, on purpose</h2>
+  <h2>The reference's five, kept exactly</h2>
   <p>The brand palette is deep green and gold. The <strong>product</strong> palette — what the
   application's screens are painted in — is the Amanah harbour blue. Forcing one to be the
   other makes both worse: the green cannot carry interface text at the ratios a UI needs, and
-  the blue does not read as an institution on a shelf of app icons. They meet in three places:
-  splash, landing, app icon.</p>
-  <div class="grid g3">{"".join(sw)}</div>
+  the blue does not read as an institution on a shelf of app icons.</p>
+  <div class="grid g3">{sw}</div>
 
   <h3 style="margin-top:40px">The gold ramp</h3>
-  <p>Four stops on a diagonal, so the highlight falls on the arch's upper left as metal would.
-  <strong>Gold is an accent and never a ground.</strong> It is the mark, the tagline and the
-  divider rule; an asset where gold is the largest area of colour is wrong however it looks.</p>
+  <p>Four stops on a diagonal, so the light falls on the arch's upper left as the reference
+  lights it. A gradient rather than a bevel or a lighting filter: a filter does not survive
+  being printed, foil-blocked, converted to a VectorDrawable or rendered at 16px, and every
+  one of those happens. <strong>Gold is an accent and never a ground.</strong></p>
   <div class="ramp">{ramp}</div>
 
   <h3 style="margin-top:40px">Measured, not assumed</h3>
   <div class="scroll"><table><thead><tr><th>Pair</th><th>Ratio</th><th>Verdict</th></tr></thead>
   <tbody>{con}</tbody></table></div>
   <p style="margin-top:14px"><strong>Gold never touches a light background.</strong> On ivory
-  it is 1.88:1. Light grounds use gold-deep at 5.45:1, and every generated light-tone asset
-  already does. The check suite asserts the floor <em>and</em> asserts that gold-on-ivory
-  still fails — if it ever passed, this rule would have gone stale without anyone noticing.</p>
+  it is 1.88:1. Light grounds use gold-deep at 5.45:1. The checks assert the floors <em>and</em>
+  assert that gold-on-ivory still fails — if it ever passed, the rule sending light grounds to
+  gold-deep would have gone stale without anyone noticing.</p>
+  <p><strong>Sage is a large-text colour.</strong> 4.42:1 carries the tagline, which is always
+  set at display size, and nothing else in the system.</p>
 </section>
 
 <section>
   <p class="eyebrow">Typography</p>
-  <h2>The wordmark is drawn, not typeset</h2>
-  <p>&ldquo;FI SABILILLAH&rdquo; is set in <strong>Libre Baskerville</strong> at 0.16em
-  tracking, with the outlines extracted and embedded as paths. The reference used Playfair
-  Display, which made the identity depend on a Google font being installed wherever the file
-  was opened — an app-store listing, a partner's deck, a printer's RIP — and where it is not,
-  the wordmark silently falls back to Times New Roman. Outlines cannot fall back.</p>
-  <p>Libre Baskerville has the same transitional skeleton and stroke contrast with slightly
-  sturdier serifs, which is an improvement at wordmark sizes: Playfair's hairlines start
-  disappearing below about 18px, which is most of the places a wordmark appears on a phone.
-  It is under the SIL Open Font License 1.1, which permits both embedding and deriving
-  outlines; the licence travels with the repository.</p>
+  <h2>{ty["display"]["family"]} and {ty["text"]["family"]}, as named</h2>
+  <p>The reference names its own faces and both are used exactly as named — Playfair Display
+  for the wordmark and tagline, Inter for the pillars line and labels. Both are SIL Open Font
+  License 1.1, both are vendored into the repository, and both licences travel with the
+  assets.</p>
+  <p>The letterforms are <strong>outlines, not font references</strong>. A font-referencing SVG
+  depends on that font being installed wherever the file is opened — an app-store listing, a
+  partner's deck, a printer's RIP — and where it is not, the wordmark silently falls back to
+  Times New Roman. Outlines cannot fall back, and the check rejects any SVG containing
+  <code>&lt;text</code>, <code>font-family</code> or <code>@font-face</code>.</p>
   <div class="glyphs">{"".join(f'<div class="glyph">{_glyph_svg(g)}</div>' for g in GLYPHS)}</div>
-  <div class="lockup" style="margin-top:28px">{svg("logo/fi-sabilillah-wordmark-mono.svg", box=wm_vb)}</div>
+  <div class="lockup lockup--wide" style="margin-top:28px">{svg("logo/fi-sabilillah-wordmark-mono.svg", box=wm_vb)}</div>
+</section>
+
+<section>
+  <p class="eyebrow">The five pillars</p>
+  <h2>What the platform is for</h2>
+  <p>Line icons rather than badges, and the distinction matters: a badge asserts that something
+  was checked, and these assert nothing. They label a section.</p>
+  <div class="grid g5">{pillars}</div>
 </section>
 
 <section>
@@ -424,23 +503,31 @@ footer {{ padding:56px 0 80px; color:var(--muted); font-size:13px; border-top:1p
 </section>
 
 <section>
+  <p class="eyebrow">Banners</p>
+  <h2>One composition, five canvases</h2>
+  <p>The social card, the site header and the print banner are the same function at different
+  sizes — which is what stops them being three designs that happen to share a mark.</p>
+  <div class="lockup lockup--wide" style="padding:0;overflow:hidden">
+    {svg("banners/fi-sabilillah-social-card.svg", box="0 0 1200 630")}</div>
+  <div class="grid g2" style="margin-top:22px">
+    <div class="lockup" style="padding:0;overflow:hidden">
+      {svg("banners/fi-sabilillah-website-header.svg", box="0 0 1600 320")}</div>
+    <div class="lockup" style="padding:0;overflow:hidden">
+      {svg("banners/fi-sabilillah-twitter-header.svg", box="0 0 1500 500")}</div>
+  </div>
+</section>
+
+<section>
   <p class="eyebrow">Splash &amp; motion</p>
   <h2>One gesture, then still</h2>
   <div class="grid g2">
     <div class="splashes">
-      <div class="splash splash--dark"><div class="splash__inner">
-        <svg viewBox="0 0 64 64" class="m" aria-hidden="true">{inner("logo/fi-sabilillah-icon-primary.svg")}</svg>
-        <svg viewBox="{wm_vb}" class="w" aria-hidden="true">{inner("logo/fi-sabilillah-wordmark-mono.svg")}</svg>
-      </div></div>
-      <div class="splash splash--light"><div class="splash__inner">
-        <svg viewBox="0 0 64 64" class="m" aria-hidden="true">{inner("logo/fi-sabilillah-icon-light.svg")}</svg>
-        <svg viewBox="{wm_vb}" class="w" aria-hidden="true">{inner("logo/fi-sabilillah-wordmark-mono.svg")}</svg>
-      </div></div>
+      <div class="splash">{svg("splash/splash-dark.svg", box="0 0 1080 1920")}</div>
+      <div class="splash">{svg("splash/splash-light.svg", box="0 0 1080 1920")}</div>
     </div>
     <div>
-      <p>The arch draws in, the crescent and arcade light, and it stops — about 1.2 seconds end
-      to end on the Amanah curve. The mark at the top of this page is running it. In the
-      application it is simpler still: a fade and a settle from 96% to 100% over 520ms.</p>
+      <p>The arch draws in and stops. In the application it is simpler still: a fade and a
+      settle from 96% to 100% over 520ms on the Amanah curve.</p>
       <p>Forbidden without exception: spinning, flashing, looping, confetti, particles, glow
       pulses, shimmer passes across the gold, and any animation that plays on completing an act
       of service. A record of service is between a person and their Lord; animating it turns it
@@ -464,25 +551,24 @@ footer {{ padding:56px 0 80px; color:var(--muted); font-size:13px; border-top:1p
     <li><strong>Nothing here has been seen on a device.</strong> Every mark was rendered and
     inspected as an image. Colour on an OLED panel, the icon against a real wallpaper, and the
     themed tint on a specific OEM skin are all unverified.</li>
-    <li><strong>No Arabic appears anywhere in this identity</strong>, deliberately. If it is
-    ever added it must be real Unicode Arabic in a shaped Arabic face, set by a native reader,
-    and never a Latin face styled to look Arabic.</li>
+    <li><strong>The Arabic has not been read by a native reader.</strong> It is shaped by
+    HarfBuzz from real Unicode in a real Arabic typeface, and the checks confirm the glyph
+    sequence — but "technically correct" and "well set" are different claims, and only the
+    first is made here.</li>
     <li><strong>The emblem is drawn from a supplied reference, at the client's direction.</strong>
     Every path is original geometry and no part of the reference is traced, embedded or
-    reproduced in any file — but the design is deliberately close to it, which is a different
-    position from independent creation, and anyone filing should say so. A crescent and star
-    are separately a very common device; the arch, arcade, leaf base and lockup are what a
-    filing would rest on.</li>
+    reproduced — but the design is deliberately close to it, which is a different position from
+    independent creation, and anyone filing should say so.</li>
     <li><strong>No trademark is registered</strong>, and <strong>scholarly review is
-    recommended before launch</strong> on the use of the phrase as a product name. This board
-    asserts that the marks claim no religious authority; a qualified scholar should confirm the
-    naming.</li>
+    recommended before launch</strong> on the use of the phrase as a product name and on setting
+    <span dir="rtl">في سبيل الله</span> inside a commercial mark. This board asserts that the
+    marks claim no religious authority; a qualified scholar should confirm the rest.</li>
   </ul>
 </section>
 
 <footer class="wrap">
   Every asset on this page is generated by <code>tools/brand/build.py</code> from one geometry
-  source and checked by <code>tools/brand/validate.py</code> — 191 checks, 0 failures. Nothing
+  source and checked by <code>tools/brand/validate.py</code> — 369 checks, 0 failures. Nothing
   under <code>brand/</code> is edited by hand.
 </footer>
 </div>

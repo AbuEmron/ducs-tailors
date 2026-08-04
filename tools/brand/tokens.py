@@ -52,19 +52,68 @@ FUNCTIONAL = {
 # to a VectorDrawable, or rendered at 16px, and every one of those happens.
 GOLD_RAMP = ("#F0DFA8", "#E0C264", "#D4AF37", "#A8811F")
 
+# A lighter ramp for the keyline inside the band: the reference lights the mark
+# from the upper left, and the keyline is where that light lands.
+GOLD_HIGHLIGHT = "#F4E6BB"
+
 # How the emblem is coloured in each context.
-#   (background, arch stroke, inner opening)
-#   name -> (plate, ink, gradient?)
+#   name -> (plate, ink, field, gradient?)
+#
+# `field` is the dark panel inside the band that the crescent and the calligraphy
+# are read against. It is per-tone rather than global because on an ivory plate a
+# dark field would turn the mark into a badge, and on a monochrome cut there must
+# be no field at all -- an outline with a filled centre is not a monochrome mark,
+# it is a two-colour mark with one of the colours missing.
 EMBLEM_TONES = {
-    "primary":    ("#0F3D34", None,      True),   # gold gradient on deep green
-    "flat":       ("#0F3D34", "#D4AF37", False),  # one flat gold; print, and Android
-    "dark":       ("#0D1115", None,      True),
-    "light":      ("#F5F2E9", "#7A5E15", False),  # gold-deep: gold on ivory is 1.88:1
-    "ivory":      ("#0F3D34", "#F5F2E9", False),  # ivory mark on green
-    "mono-black": (None,      "#0D1115", False),
-    "mono-white": (None,      "#FFFFFF", False),
+    "primary":    ("#0F3D34", None,      "#0A2A24", True),   # gradient gold on deep green
+    "flat":       ("#0F3D34", "#D4AF37", "#0A2A24", False),  # one flat gold; print, Android
+    "dark":       ("#0D1115", None,      "#0A1613", True),
+    "light":      ("#F5F2E9", "#7A5E15", "#FFFFFF", False),  # gold on ivory is 1.88:1
+    "ivory":      ("#1C574A", "#F5F2E9", "#14483D", False),  # ivory mark on mineral green
+    "mono-black": (None,      "#0D1115", None,      False),
+    "mono-white": (None,      "#FFFFFF", None,      False),
     # Inside the application, where the surrounding surfaces are Amanah harbour blue.
-    "amanah":     ("#0E4861", "#D4AF37", False),
+    "amanah":     ("#0E4861", "#D4AF37", "#0A3448", False),
+}
+
+# ── Typography ───────────────────────────────────────────────────────────────
+#
+# Named by the reference itself: Playfair Display for display, Inter for text.
+# The third face is for the emblem's calligraphy. All three are SIL Open Font
+# License 1.1 and all three are vendored under `tools/brand/fonts/`.
+
+TYPOGRAPHY = {
+    "display": {
+        "family": "Playfair Display",
+        "file": "PlayfairDisplay-Medium.ttf",
+        "licence": "SIL OFL 1.1",
+        "role": "The wordmark and the tagline. Elegant, timeless, trustworthy.",
+        "tracking": "0.17em on the wordmark, 0.06em on the tagline",
+    },
+    "text": {
+        "family": "Inter",
+        "file": "Inter-SemiBold.ttf",
+        "licence": "SIL OFL 1.1",
+        "role": "The pillars line, labels, and every interface string.",
+        "tracking": "0.24em on the pillars line, 0 in running text",
+    },
+    "arabic": {
+        "family": "Noto Kufi Arabic",
+        "file": "NotoKufiArabic-Bold.ttf",
+        "licence": "SIL OFL 1.1",
+        "role": "The calligraphy inside the emblem. Shaped by HarfBuzz, never by hand.",
+        "tracking": "as shaped",
+    },
+}
+
+# The type scale the brand materials are set on, as multiples of the wordmark's
+# cap height. Not the product's scale -- that is `ui/theme/Type.kt`, and it is
+# built for reading rather than for a title slide.
+TYPE_SCALE = {
+    "wordmark": 1.0,
+    "tagline": 0.30,
+    "pillars": 0.17,
+    "label": 0.13,
 }
 
 

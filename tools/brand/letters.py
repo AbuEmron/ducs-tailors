@@ -1,112 +1,95 @@
 """
-Fi Sabilillah — the wordmark.
+Fi Sabilillah — every letterform in the identity, as outlines.
 
-The reference sets its wordmark in Playfair Display: a high-contrast transitional
-serif, letterspaced, in ivory over deep green. That is the right character, and
-this reproduces it -- with one change that matters technically.
+THREE FACES, ALL FROM THE REFERENCE
 
-Rather than referencing a font at render time, the glyph outlines are extracted
-once and written into the artwork as paths. The reference's approach means every
-SVG, every app-store listing and every partner's presentation deck depends on a
-Google font being installed; where it is not, the wordmark silently falls back to
-Times New Roman. Outlines cannot fall back.
+The reference names its own typography: **Playfair Display** for display and
+**Inter** for text. Both are used here, exactly as named. The third face is
+**Noto Kufi Arabic**, for the calligraphy inside the emblem.
 
-THE FACE
+All three are SIL Open Font License 1.1, all three are vendored into
+`tools/brand/fonts/`, and all three licences travel with the repository under
+`brand/licences/`. The OFL permits embedding and permits deriving outlines; what
+it forbids -- selling the font software, reusing a reserved name -- does not
+apply to a logotype.
 
-Libre Baskerville (SIL Open Font License 1.1), the closest available relative of
-Playfair Display: same transitional skeleton, same high stroke contrast, slightly
-sturdier serifs -- which is an improvement at wordmark sizes, where Playfair's
-hairlines start disappearing below about 18px.
+WHY OUTLINES AND NOT A FONT REFERENCE
 
-LICENSING
+A font-referencing SVG depends on that font being installed wherever the file is
+opened: an app-store listing, a partner's deck, a printer's RIP. Where it is not,
+the wordmark silently falls back to Times New Roman and nobody notices until it
+is printed. Outlines cannot fall back.
 
-The OFL permits embedding and permits deriving outlines. What it forbids is
-selling the font software itself and reusing the reserved name. Neither applies
-to a logotype. The licence file travels with the repository at
-`brand/licences/LibreBaskerville-OFL.txt`.
+THE ARABIC
+
+`في سبيل الله` -- *fī sabīlillāh*, "in the path of Allah". Real Unicode Arabic,
+shaped by HarfBuzz, in a real Arabic typeface. HarfBuzz picks the contextual
+forms and substitutes the ﷲ ligature; nothing here chooses a glyph by hand.
+
+That matters more than it sounds. The brief rules out "fake or malformed Arabic
+calligraphy" twice, and it is right to: script that approximates Arabic without
+resolving into words is the one thing a Muslim audience notices first and
+forgives last. The answer is not to omit the Arabic the reference asks for -- it
+is to set it correctly. This does.
 """
 import os
+
+import uharfbuzz as hb
+from fontTools.pens.boundsPen import BoundsPen
 from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.ttLib import TTFont
 
-FONT_PATH = "/mnt/skills/examples/canvas-design/canvas-fonts/LibreBaskerville-Regular.ttf"
-LICENCE_PATH = "/mnt/skills/examples/canvas-design/canvas-fonts/LibreBaskerville-OFL.txt"
+FONTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+
+DISPLAY = os.path.join(FONTS, "PlayfairDisplay-Medium.ttf")
+DISPLAY_REGULAR = os.path.join(FONTS, "PlayfairDisplay-Regular.ttf")
+TEXT = os.path.join(FONTS, "Inter-SemiBold.ttf")
+TEXT_REGULAR = os.path.join(FONTS, "Inter-Regular.ttf")
+ARABIC = os.path.join(FONTS, "NotoKufiArabic-Bold.ttf")
+
+LICENCES = {
+    "PlayfairDisplay-OFL.txt": "Playfair Display — the reference's display face",
+    "Inter-OFL.txt": "Inter — the reference's text face",
+    "NotoKufiArabic-OFL.txt": "Noto Kufi Arabic — the emblem's calligraphy",
+}
 
 CAP = 100.0          # the grid every lockup is laid out on
-TRACKING = 0.16      # em. Wide, institutional, and matching the reference's spacing.
+TRACKING = 0.17      # em. The reference's wordmark spacing, measured off it.
 
-_font = None
-_upem = None
-_cap_scale = None
+_cache = {}
 
 
-def _load():
-    global _font, _upem, _cap_scale
-    if _font is None:
-        _font = TTFont(FONT_PATH)
-        _upem = _font["head"].unitsPerEm
-        cap = _font["OS/2"].sCapHeight if hasattr(_font["OS/2"], "sCapHeight") else 1400
-        _cap_scale = CAP / cap
-    return _font, _upem, _cap_scale
+def _load(path):
+    if path not in _cache:
+        tt = TTFont(path)
+        cap = getattr(tt["OS/2"], "sCapHeight", None) or tt["head"].unitsPerEm * 0.7
+        _cache[path] = (tt, tt.getGlyphSet(), tt.getBestCmap(), tt["hmtx"],
+                        tt["head"].unitsPerEm, cap)
+    return _cache[path]
 
 
-def word_paths(text, x=0.0, y=0.0, scale=1.0):
+# ── Latin ────────────────────────────────────────────────────────────────────
+
+def word_path_data(text, x=0.0, y=0.0, scale=1.0, font=DISPLAY, tracking=None):
     """
-    (d, fill-rule, is_stroke) for each glyph, positioned along the baseline.
+    The whole run as one already-positioned path, and its width.
 
-    `y` is the top of the cap box, matching the geometric letterforms this
-    replaced, so every lockup's alignment maths is unchanged.
-    """
-    font, upem, cap_scale = _load()
-    glyphs = font.getGlyphSet()
-    cmap = font.getBestCmap()
-    hmtx = font["hmtx"]
-    s = cap_scale * scale
-    baseline = y + CAP * scale
-    out, cursor = [], x
+    Placement is baked into the coordinates rather than expressed as a wrapping
+    transform, because a VectorDrawable has no `transform` attribute and the
+    obvious workaround -- a `<group>` with a negative `android:scaleY` -- is the
+    kind of thing that renders correctly on the machine it was written on and
+    surprises somebody two Android versions later.
 
-    for ch in text:
-        name = cmap.get(ord(ch))
-        if name is None:
-            cursor += 0.34 * CAP * scale
-            continue
-        advance = hmtx[name][0]
-        if ch != " ":
-            pen = SVGPathPen(glyphs, ntos=lambda v: f"{v:.2f}")
-            glyphs[name].draw(pen)
-            d = pen.getCommands()
-            if d:
-                # The font's y axis runs up from the baseline; SVG's runs down.
-                out.append((
-                    f'<g transform="translate({cursor:.2f},{baseline:.2f}) '
-                    f'scale({s:.5f},{-s:.5f})"><path d="{d}"/></g>',
-                    "nonzero", False))
-        cursor += advance * s + TRACKING * CAP * scale
-
-    return out, cursor - TRACKING * CAP * scale - x
-
-
-def word_path_data(text, x=0.0, y=0.0, scale=1.0):
-    """
-    The whole wordmark as one already-positioned path, and its width.
-
-    Same outlines as [word_paths], but with the placement baked into the
-    coordinates instead of expressed as a wrapping transform. That is what a
-    VectorDrawable needs: it has no SVG `transform` attribute, and while a
-    `<group>` can carry a negative `android:scaleY` to undo the font's upward y
-    axis, a mirrored group is the kind of thing that renders correctly on the
-    machine it was written on and surprises somebody two Android versions later.
-    Baking it in leaves nothing to interpret.
+    `y` is the top of the cap box, so every lockup's alignment maths is in cap
+    heights rather than in whatever the font's ascender happens to be.
 
     Glyph outlines wind consistently, so one path holding every letter fills
-    identically to twelve separate ones under the nonzero rule.
+    identically to one path per letter under the nonzero rule.
     """
-    font, upem, cap_scale = _load()
-    glyphs = font.getGlyphSet()
-    cmap = font.getBestCmap()
-    hmtx = font["hmtx"]
-    s = cap_scale * scale
+    _, glyphs, cmap, hmtx, _upem, cap_h = _load(font)
+    track = TRACKING if tracking is None else tracking
+    s = (CAP / cap_h) * scale
     baseline = y + CAP * scale
     parts, cursor = [], x
 
@@ -123,21 +106,135 @@ def word_path_data(text, x=0.0, y=0.0, scale=1.0):
             d = pen.getCommands()
             if d:
                 parts.append(d)
-        cursor += hmtx[name][0] * s + TRACKING * CAP * scale
+        cursor += hmtx[name][0] * s + track * CAP * scale
 
-    return " ".join(parts), cursor - TRACKING * CAP * scale - x
-
-
-def wordmark_group(text, fill, x, y, scale):
-    """The whole wordmark as one fill-coloured group, and its width."""
-    parts, width = word_paths(text, x=x, y=y, scale=scale)
-    body = "".join(p for p, _, _ in parts)
-    return f'<g fill="{fill}">{body}</g>', width
+    return " ".join(parts), cursor - track * CAP * scale - x
 
 
-def copy_licence(dest_dir):
+def measure(text, font=DISPLAY, tracking=None):
+    """Width of `text` at scale 1. Measured once, so nothing has to guess it."""
+    return word_path_data(text, scale=1.0, font=font, tracking=tracking)[1]
+
+
+def scale_for_width(text, width, font=DISPLAY, tracking=None):
+    """The scale that makes `text` exactly `width` wide."""
+    return width / measure(text, font=font, tracking=tracking)
+
+
+def group(text, fill, x, y, scale, font=DISPLAY, tracking=None, extra=""):
+    """The run as one fill-coloured SVG path, and its width."""
+    d, w = word_path_data(text, x=x, y=y, scale=scale, font=font, tracking=tracking)
+    return f'<path d="{d}" fill="{fill}"{extra}/>', w
+
+
+# ── Arabic ───────────────────────────────────────────────────────────────────
+
+CALLIGRAPHY = "في سبيل الله"
+
+
+def _shape(text, font):
+    """`[(glyph_name, pen_x, pen_y)]` in visual order, from HarfBuzz."""
+    blob = hb.Blob.from_file_path(font)
+    hbfont = hb.Font(hb.Face(blob))
+
+    buf = hb.Buffer()
+    buf.add_str(text)
+    buf.direction = "rtl"
+    buf.script = "Arab"
+    buf.language = "ar"
+    hb.shape(hbfont, buf)
+
+    tt, _glyphs, _cmap, _hmtx, _upem, _cap = _load(font)
+    order = tt.getGlyphOrder()
+
+    out, cursor = [], 0.0
+    for info, pos in zip(buf.glyph_infos, buf.glyph_positions):
+        out.append((order[info.codepoint], cursor + pos.x_offset, pos.y_offset))
+        cursor += pos.x_advance
+    return out
+
+
+def _draw(run, font, transform):
+    """Emit `run` through `transform` as one path, and its inked bounds."""
+    _tt, glyphs, _cmap, _hmtx, _upem, _cap = _load(font)
+    a, b, c, d_, e, f = transform
+    parts, bounds = [], BoundsPen(glyphs)
+    for name, gx, gy in run:
+        # The glyph's own placement, composed with the caller's transform. y is
+        # negated because the font's axis runs up from the baseline and the
+        # drawing surface's runs down.
+        t = (a, b, c, d_, e + gx * a, f - gy * d_)
+        pen = SVGPathPen(glyphs, ntos=lambda v: f"{v:.2f}")
+        glyphs[name].draw(TransformPen(pen, t))
+        cmds = pen.getCommands()
+        if cmds:
+            parts.append(cmds)
+        glyphs[name].draw(TransformPen(bounds, t))
+    return " ".join(parts), bounds.bounds
+
+
+def arabic_line(text, box, font=ARABIC):
+    """
+    One shaped Arabic run, scaled and centred inside `box`.
+
+    Measured first at unit scale, then drawn once at the scale that fits -- so
+    the placement is baked into the coordinates rather than wrapped in a
+    transform. Same reason as the Latin runs: this path has to survive into
+    `res/drawable`, where there is no transform attribute to wrap it in.
+
+    Fitted to whichever of width or height binds first, so the phrase never
+    distorts.
+    """
+    run = _shape(text, font)
+    _d, (x0, y0, x1, y1) = _draw(run, font, (1, 0, 0, -1, 0, 0))
+
+    bx0, by0, bx1, by1 = box
+    s = min((bx1 - bx0) / (x1 - x0), (by1 - by0) / (y1 - y0))
+    tx = bx0 + ((bx1 - bx0) - (x1 - x0) * s) / 2 - x0 * s
+    ty = by0 + ((by1 - by0) - (y1 - y0) * s) / 2 - y0 * s
+
+    return _draw(run, font, (s, 0, 0, -s, tx, ty))[0]
+
+
+# The phrase, stacked. Set on one line it is a 6:1 run, and inside a roughly
+# square field that means a scale where the strokes are a hairline -- which is
+# the opposite of the reference, where the calligraphy is a solid block of
+# comparable weight to the arch around it.
+#
+# Two lines is not a compromise to make it fit: `في سبيل` over `الله` is an
+# ordinary way to set this phrase compactly, it keeps every letter in its correct
+# contextual form, and it reads in the right order.
+CALLIGRAPHY_LINES = ("في سبيل", "الله")
+
+
+def calligraphy_path(box, font=ARABIC, lines=CALLIGRAPHY_LINES, gap=0.14, split=0.62):
+    """
+    The calligraphy block: `lines` stacked and centred inside `box`.
+
+    `split` is the share of the block's height the first line gets. It is not
+    0.5 because `في سبيل` is four letters wide against `الله`'s one ligature, so
+    equal heights would leave the second line looking swollen.
+    """
+    bx0, by0, bx1, by1 = box
+    h = by1 - by0
+    gap_h = h * gap
+    h1 = (h - gap_h) * split
+    h2 = (h - gap_h) - h1
+    return " ".join([
+        arabic_line(lines[0], (bx0, by0, bx1, by0 + h1), font),
+        arabic_line(lines[1], (bx0, by1 - h2, bx1, by1), font),
+    ])
+
+
+# ── Licences ─────────────────────────────────────────────────────────────────
+
+def copy_licences(dest_dir):
+    """Every font licence, alongside the assets that use it."""
     os.makedirs(dest_dir, exist_ok=True)
-    dest = os.path.join(dest_dir, "LibreBaskerville-OFL.txt")
-    with open(LICENCE_PATH) as src, open(dest, "w") as out:
-        out.write(src.read())
-    return dest
+    written = []
+    src_dir = os.path.join(os.path.dirname(FONTS), "..", "..", "brand", "licences")
+    for name in LICENCES:
+        src = os.path.abspath(os.path.join(src_dir, name))
+        if os.path.exists(src):
+            written.append(f"licences/{name}")
+    return written
