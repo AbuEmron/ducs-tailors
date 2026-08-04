@@ -23,6 +23,10 @@ import androidx.compose.runtime.staticCompositionLocalOf
  */
 
 private val LightScheme = lightColorScheme(
+    // Primary is the deep harbour blue rather than the teal. Body text is Ink10, which is
+    // a different colour from the primary for the first time — previously the two were
+    // the same value, so a heading and a button label were indistinguishable in a
+    // screenshot and the hierarchy came entirely from weight.
     primary = Ink20,
     onPrimary = White,
     primaryContainer = Teal90,
@@ -34,10 +38,12 @@ private val LightScheme = lightColorScheme(
     secondaryContainer = Teal90,
     onSecondaryContainer = Teal20,
 
-    tertiary = Violet50,
+    // Tan, not violet. Violet is spoken for: it means learning, and a tertiary that also
+    // meant learning left nothing for organisations.
+    tertiary = Tan50,
     onTertiary = White,
-    tertiaryContainer = Violet90,
-    onTertiaryContainer = Violet20,
+    tertiaryContainer = Tan90,
+    onTertiaryContainer = Tan20,
 
     error = Crimson40,
     onError = White,
@@ -45,9 +51,9 @@ private val LightScheme = lightColorScheme(
     onErrorContainer = Crimson20,
 
     background = Sand95,
-    onBackground = Ink20,
-    surface = Sand99,
-    onSurface = Ink20,
+    onBackground = Ink10,
+    surface = White,
+    onSurface = Ink10,
     surfaceVariant = Sand90,
     onSurfaceVariant = Sand50,
     surfaceContainerLowest = White,
@@ -75,19 +81,19 @@ private val DarkScheme = darkColorScheme(
     secondaryContainer = Teal30,
     onSecondaryContainer = Teal95,
 
-    tertiary = Violet80,
-    onTertiary = Violet20,
-    tertiaryContainer = Violet30,
-    onTertiaryContainer = Violet90,
+    tertiary = Tan80,
+    onTertiary = Tan20,
+    tertiaryContainer = Tan30,
+    onTertiaryContainer = Tan90,
 
     error = Crimson80,
     onError = Crimson20,
     errorContainer = Crimson30,
     onErrorContainer = Crimson90,
 
-    background = Ink10,
+    background = Ink05,
     onBackground = Ink95,
-    surface = Ink10,
+    surface = Slate10,
     onSurface = Ink95,
     surfaceVariant = Sand20,
     onSurfaceVariant = Sand60,
@@ -101,7 +107,7 @@ private val DarkScheme = darkColorScheme(
     outlineVariant = Sand30,
     scrim = Ink00,
     inverseSurface = Ink95,
-    inverseOnSurface = Ink20,
+    inverseOnSurface = Ink10,
 )
 
 /** Every pair here clears 7:1. Used when the reader has asked the system for more contrast. */
@@ -149,6 +155,9 @@ internal val LocalSpacing: ProvidableCompositionLocal<Spacing> =
 internal val LocalMotion: ProvidableCompositionLocal<Motion> =
     staticCompositionLocalOf { Motion() }
 
+internal val LocalElevation: ProvidableCompositionLocal<Elevation> =
+    staticCompositionLocalOf { Elevation() }
+
 /**
  * The application theme.
  *
@@ -175,6 +184,7 @@ internal fun FiSabilillahTheme(
         LocalStatusColors provides statusColors,
         LocalSpacing provides Spacing(),
         LocalMotion provides Motion(),
+        LocalElevation provides Elevation(),
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
@@ -203,4 +213,7 @@ internal object FiSabilillahTheme {
 
     val motion: Motion
         @Composable @ReadOnlyComposable get() = LocalMotion.current
+
+    val elevation: Elevation
+        @Composable @ReadOnlyComposable get() = LocalElevation.current
 }

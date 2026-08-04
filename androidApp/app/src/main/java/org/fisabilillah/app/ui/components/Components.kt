@@ -135,6 +135,7 @@ internal fun ContentCard(
     content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
 ) {
     val spacing = FiSabilillahTheme.spacing
+    val elevation = FiSabilillahTheme.elevation
     val shape = MaterialTheme.shapes.medium
     val base = modifier
         .fillMaxWidth()
@@ -148,10 +149,17 @@ internal fun ContentCard(
         },
         shape = shape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            // The prototype's `--surface`, which is a full white on light and the raised
+            // slate on dark — in both cases a step away from the page behind it rather
+            // than the same value with a line drawn round it.
+            containerColor = MaterialTheme.colorScheme.surface,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        // Lifted only when it can be tapped. A shadow is a promise that something will
+        // happen if you press it, and a card that just holds text should not make one.
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (onClick != null) elevation.raised else elevation.flat,
+        ),
         border = androidx.compose.foundation.BorderStroke(
             width = 1.dp,
             color = MaterialTheme.colorScheme.outlineVariant,

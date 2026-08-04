@@ -67,12 +67,37 @@ internal val FiSabilillahTypography: Typography = Typography(
  * than administrative.
  */
 internal val FiSabilillahShapes: Shapes = Shapes(
-    // The prototype's radius scale, exactly: 10 / 14 / 20 / 28.
-    extraSmall = RoundedCornerShape(6.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(14.dp),
-    large = RoundedCornerShape(20.dp),
-    extraLarge = RoundedCornerShape(28.dp),
+    // The prototype's --r-xs through --r-xl. Softer than the previous scale at every
+    // step, and the top of it is now 38dp rather than 28: the large cards are meant to
+    // read as objects sitting on the surface rather than as regions divided out of it.
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(20.dp),
+    large = RoundedCornerShape(28.dp),
+    extraLarge = RoundedCornerShape(38.dp),
+)
+
+/**
+ * # Depth
+ *
+ * The prototype gained a three-step shadow scale in this revision, where before it had one
+ * flat card treatment. Translated to Compose's dp elevation rather than to literal shadow
+ * offsets, because Android draws elevation itself and a hand-rolled shadow would not match
+ * the platform's own surfaces sitting next to it.
+ *
+ * Restraint is the rule. Level three exists for exactly one thing at a time — the sheet or
+ * dialogue the reader is currently answering — and a screen with two of them has lost the
+ * plot about what the reader is being asked.
+ */
+internal data class Elevation(
+    /** Flat. Most cards. */
+    val flat: androidx.compose.ui.unit.Dp = 0.dp,
+    /** `--shadow-1`. A card that can be tapped. */
+    val raised: androidx.compose.ui.unit.Dp = 2.dp,
+    /** `--shadow-2`. A menu, a popover, the mobile dock. */
+    val floating: androidx.compose.ui.unit.Dp = 8.dp,
+    /** `--shadow-3`. A modal sheet. One at a time. */
+    val modal: androidx.compose.ui.unit.Dp = 16.dp,
 )
 
 /**
